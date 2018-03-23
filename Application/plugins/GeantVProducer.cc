@@ -31,7 +31,7 @@
 #include "Geant/PhysicsProcessHandler.h"
 #include "Geant/PhysicsListManager.h"
 
-#include "Geant/example/CMSApplicationTBB.h"
+#include "SimGVCore/Application/interface/CMSApplicationTBB.h"
 #include "Geant/example/CMSPhysicsList.h"
 #include "Geant/example/CMSDetectorConstruction.h"
 
@@ -44,8 +44,6 @@ class GeantVProducer : public edm::global::EDProducer<> {
     ~GeantVProducer() override;
 
     void produce(edm::StreamID, edm::Event&, edm::EventSetup const&) const override;
-
-    void endJob() override;
 
   private:
     void preallocate(edm::PreallocationConfiguration const&) override;
