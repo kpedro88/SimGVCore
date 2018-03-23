@@ -12,8 +12,11 @@
 #include "FWCore/Framework/interface/global/EDProducer.h"
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
+#include "FWCore/Framework/src/PreallocationConfiguration.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/Utilities/interface/StreamID.h"
+#include "FWCore/Utilities/interface/InputTag.h"
+#include "FWCore/Utilities/interface/EDGetToken.h"
 
 #include "SimDataFormats/GeneratorProducts/interface/HepMCProduct.h"
 #include "HepMC/GenEvent.h"
@@ -23,6 +26,7 @@
 #include "Geant/Config.h"
 #include "Geant/RunManager.h"
 #include "Geant/EventSet.h"
+#include "Geant/Particle.h"
 
 #include "Geant/PhysicsProcessHandler.h"
 #include "Geant/PhysicsListManager.h"
@@ -47,13 +51,13 @@ class GeantVProducer : public edm::global::EDProducer<> {
     void preallocate(edm::PreallocationConfiguration const&) override;
 
     /** Functions using new GeantV interface */
-    bool RunTransportTask(size_t nevents, const size_t *event_index);
+    bool RunTransportTask(const HepMC::GenEvent * evt, long long event_index) const;
 
     /** @brief Generate an event set to be processed by a single task.
 	Not required as application functionality, the event reading or generation
 	can in the external event loop.
     */
-    geant::EventSet* GenerateEventSet(const HepMC::GenEvent * evt, TaskData *td) const;
+    geant::EventSet* GenerateEventSet(const HepMC::GenEvent * evt, long long event_index, TaskData *td) const;
 
     // e.g. cms2015.root, cms2018.gdml, ExN03.root
     std::string cms_geometry_filename;
@@ -61,15 +65,14 @@ class GeantVProducer : public edm::global::EDProducer<> {
     GeantConfig* fConfig = nullptr;
     // cheating because run manager's functions modify its internal state
     // hope it handles locking internally
-    const RunManager* fRunMgr = nullptr;
+    mutable RunManager* fRunMgr = nullptr;
 };
 
 GeantVProducer::GeantVProducer(edm::ParameterSet const& iConfig) :
     cms_geometry_filename(iConfig.getParameter<std::string>("geometry")),
-    m_InToken(iConfig.getParameter<edm::InputTag>("HepMCProductLabel"))
+    m_InToken(consumes<edm::HepMCProduct>(iConfig.getParameter<edm::InputTag>("HepMCProductLabel")))
 {
-    fEventGeneratorLock.clear();
-    produces<IntProduct>();
+    produces<long long>();
 }
 
 GeantVProducer::~GeantVProducer() {
@@ -91,7 +94,7 @@ void GeantVProducer::preallocate(edm::PreallocationConfiguration const& iPreallo
     fConfig->fRunMode = GeantConfig::kExternalLoop;
 
     fConfig->fGeomFileName = cms_geometry_filename;
-    fConfig->fNtotal = fNevents;
+    fConfig->fNtotal = 9999; //need to get nevents from somewhere
     fConfig->fNbuff = n_threads;
 
     // V3 options
@@ -145,7 +148,7 @@ void GeantVProducer::preallocate(edm::PreallocationConfiguration const& iPreallo
     detector_construction->SetGDMLFile(cms_geometry_filename); 
     fRunMgr->SetDetectorConstruction( detector_construction );
 
-    CMSApplicationTBB *cmsApp = new CMSApplicationTBB(fRunMgr, cmsgun);
+    CMSApplicationTBB *cmsApp = new CMSApplicationTBB(fRunMgr, nullptr);
     cmsApp->SetPerformanceMode(performance);
     std::cerr<<"*** RunManager: setting up CMSApplicationTBB...\n";
     fRunMgr->SetUserApplication( cmsApp );
@@ -163,19 +166,19 @@ void GeantVProducer::preallocate(edm::PreallocationConfiguration const& iPreallo
 void GeantVProducer::produce(edm::StreamID, edm::Event& iEvent, edm::EventSetup const& iSetup) const
 {
     edm::Handle<edm::HepMCProduct> HepMCEvt;
-    inpevt.getByToken(m_InToken, HepMCEvt);
+    iEvent.getByToken(m_InToken, HepMCEvt);
 
     // this will block the thread until completed
     std::cerr << "GeantVProducer::produce(): *** Run GeantV simulation task ***\n";
     RunTransportTask(HepMCEvt->GetEvent(), iEvent.eventAuxiliary().event());
 
     std::cerr<<"GeantVProducer at "<< this <<": adding to event...\n";
-    iEvent.put(std::move(make_unique<long long>(iEvent.eventAuxiliary().event())));
+    iEvent.put(std::move(std::make_unique<long long>(iEvent.eventAuxiliary().event())));
     std::cerr<<"GeantVProducer at "<< this <<": done!\n";
 }
 
 // This is the entry point for the user code to transport as a task a set of events
-bool GeantVProducer::RunTransportTask(const HepMC::GenEvent * evt, size_t event_index)
+bool GeantVProducer::RunTransportTask(const HepMC::GenEvent * evt, long long event_index) const
 {
     // First book a transport task from GeantV run manager
     TaskData *td = fRunMgr->BookTransportTask();
@@ -195,11 +198,10 @@ bool GeantVProducer::RunTransportTask(const HepMC::GenEvent * evt, size_t event_
 }
 
 // eventually this can become more like SimG4Core/Generators/interface/Generator.h
-geant::EventSet* GeantVProducer::GenerateEventSet(const HepMC::GenEvent * evt, size_t event_index, geant::TaskData *td) const
+geant::EventSet* GeantVProducer::GenerateEventSet(const HepMC::GenEvent * evt, long long event_index, geant::TaskData *td) const
 {
     using EventSet = geant::EventSet;
     using Event = geant::Event;
-    using EventInfo = geant::EventInfo;
     using Track = geant::Track;
 
     EventSet *evset = new EventSet(1);
