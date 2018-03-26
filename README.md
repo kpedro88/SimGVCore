@@ -3,9 +3,9 @@ Test package for GeantV in CMSSW
 
 Installation instructions:
 ```
-CMSSW_LATEST=`scram list CMSSW_10_1_ROOT612 | tail -n 2 | head -n 1 | awk '{print $2}'`
-cmsrel $CMSSW_LATEST
-cd $CMSSW_LATEST
+scram list CMSSW_10_1_ROOT612 | tail -n 2 | head -n 1 | awk '{print $2}' > CMSSW_LATEST
+cmsrel `cat CMSSW_LATEST`
+cd `cat CMSSW_LATEST`
 cmsenv
 mkdir work
 cd work
