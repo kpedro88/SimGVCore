@@ -20,6 +20,18 @@
 using namespace geant;
 
 namespace cmsapp {
+CMSApplicationTBB::CMSApplicationTBB(geant::RunManager *runmgr, CMSParticleGun* gun)
+  : CMSFullApp(runmgr, gun) 
+{
+  if(!gun){
+    //make a dummy
+    gun = new CMSParticleGun();
+    gun->SetNumPrimaryPerEvt(0);
+  }
+}
+
+CMSApplicationTBB::~CMSApplicationTBB() {}
+
 //// User actions in terms of TBB tasks
 void CMSApplicationTBB::SetEventContinuationTask(int ievt, tbb::task *pTask) {
   std::lock_guard<std::mutex> lock(fMapLock);

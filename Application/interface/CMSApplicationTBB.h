@@ -42,22 +42,14 @@ private:
 public:
 
   /** @brief Constructor CMSApplicationTBB */
-  CMSApplicationTBB(geant::RunManager *runmgr, CMSParticleGun* gun = nullptr)
-    : CMSFullApp(runmgr, gun) 
-  {
-    if(!gun){
-      //make a dummy
-      gun = new CMSParticleGun();
-      gun->SetNumPrimaryPerEvt(0);
-    }
-  }
+  CMSApplicationTBB(geant::RunManager *runmgr, CMSParticleGun* gun = nullptr);
 
   /** @brief Destructor CMSApplicationTBB */
-  virtual ~CMSApplicationTBB() {}
+  virtual ~CMSApplicationTBB();
 
-  /** @brief Interace method that is called when the transportation of an event (including all primary and their
+  /** @brief Interface method that is called when the transportation of an event (including all primary and their
     *        secondary particles) is completed .*/
-  virtual void FinishEvent(geant::Event *event);
+  void FinishEvent(geant::Event *event) override;
 
   /**
    * @brief  Receive a pointer to the tbb::task to be run once a given event has been fully simulated.
