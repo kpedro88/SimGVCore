@@ -1,5 +1,7 @@
 <use name="geantv"/>
-<use name="vecgeom"/>
+<use name="vecgeomv"/>
+<use name="veccore"/>
+<use name="rootgeom"/>
 <use name="tbb"/>
 <export>
   <lib   name="1"/>
