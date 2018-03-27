@@ -12,6 +12,7 @@
 
 // ported from https://gitlab.cern.ch/GeantV/geant/blob/master/examples/physics/cmsToyGV/TBBProcessingDemo/TBBTestModules/CMSApplicationTBB.cpp
 
+#include "FWCore/MessageLogger/interface/MessageLogger.h"
 #include "SimGVCore/Application/interface/CMSApplicationTBB.h"
 #include "Geant/Event.h"
 #include "Geant/TaskData.h"
@@ -36,7 +37,7 @@ CMSApplicationTBB::~CMSApplicationTBB() {}
 void CMSApplicationTBB::SetEventContinuationTask(int ievt, tbb::task *pTask) {
   std::lock_guard<std::mutex> lock(fMapLock);
   fPostSimTaskMap.insert( std::pair<int,tbb::task*>(ievt, pTask) );
-  printf("CMSApplicTBB::SetEvtContTask: ievt=%i, pTask=<%p>, map.size=%lu\n", ievt, pTask, fPostSimTaskMap.size());
+  edm::LogInfo("CMSApplicationTBB")<<"SetEvtContTask: ievt="<<ievt<<", pTask=<"<<pTask<<">, map.size="<<fPostSimTaskMap.size();
 }
 
 
@@ -48,9 +49,9 @@ void CMSApplicationTBB::FinishEvent(geant::Event *event) {
   auto iter = fPostSimTaskMap.find(event->GetEvent());
   if (iter != fPostSimTaskMap.end()) {
     tbb::task* pTask = iter->second;
-    printf("CMSAppTBB::FinishEvent(%i,%i), iter=<%p>, map.size=%lu\n", event->GetEvent(), event->GetSlot(), pTask, fPostSimTaskMap.size());
+    edm::LogInfo("GeantVProducer")<<"FinishEvent("<<event->GetEvent()<<","<<event->GetSlot()<<"), iter=<"<<pTask<<">, map.size="<<fPostSimTaskMap.size();
     pTask->decrement_ref_count();
-    printf("CMSAppTBB::FinishEvent: pTask ref count=%i\n", pTask->ref_count());
+    edm::LogInfo("GeantVProducer")<<"FinishEvent: pTask ref count="<<pTask->ref_count();
   }
 }
 

@@ -19,6 +19,7 @@
 #include "FWCore/Utilities/interface/EDGetToken.h"
 #include "FWCore/Utilities/interface/RootHandlers.h"
 #include "FWCore/ServiceRegistry/interface/Service.h"
+#include "FWCore/MessageLogger/interface/MessageLogger.h"
 
 #include "SimDataFormats/GeneratorProducts/interface/HepMCProduct.h"
 #include "HepMC/GenEvent.h"
@@ -144,11 +145,11 @@ void GeantVProducer::initialize(){
     fConfig->fUseVectorizedGeom = false;
 
      // Create run manager
-    std::cerr<<"*** RunManager: instantiating with "<< n_propagators <<" propagators and "<< n_threads <<" threads.\n";
+    edm::LogInfo("GeantVProducer") <<"*** RunManager: instantiating with "<< n_propagators <<" propagators and "<< n_threads <<" threads.";
     fRunMgr = new RunManager(n_propagators, n_threads, fConfig);
 
     // create the real physics main manager/interface object and set it in the RunManager
-    std::cerr<<"*** RunManager: setting physics process...\n";
+    edm::LogInfo("GeantVProducer") <<"*** RunManager: setting physics process...";
     fRunMgr->SetPhysicsInterface(new geantphysics::PhysicsProcessHandler());
 
     // Create user defined physics list for the full CMS application
@@ -161,17 +162,14 @@ void GeantVProducer::initialize(){
 
     CMSApplicationTBB *cmsApp = new CMSApplicationTBB(fRunMgr, nullptr);
     cmsApp->SetPerformanceMode(performance);
-    std::cerr<<"*** RunManager: setting up CMSApplicationTBB...\n";
+    edm::LogInfo("GeantVProducer") <<"*** RunManager: setting up CMSApplicationTBB...";
     fRunMgr->SetUserApplication( cmsApp );
 
     // Start simulation for all propagators
-    std::cerr<<"*** RunManager: initializing...\n";
+    edm::LogInfo("GeantVProducer") <<"*** RunManager: initializing...";
     fRunMgr->Initialize();
 
-    printf("==========================================================\n");
-    printf("= GeantV initialized using maximum %d worker threads ====\n",
-	   fRunMgr->GetNthreads());
-    printf("==========================================================\n");
+    edm::LogInfo("GeantVProducer") << "= GeantV initialized using maximum " << fRunMgr->GetNthreads() << " worker threads";
 }
 
 void GeantVProducer::produce(edm::StreamID, edm::Event& iEvent, edm::EventSetup const& iSetup) const
@@ -180,12 +178,12 @@ void GeantVProducer::produce(edm::StreamID, edm::Event& iEvent, edm::EventSetup 
     iEvent.getByToken(m_InToken, HepMCEvt);
 
     // this will block the thread until completed
-    std::cerr << "GeantVProducer::produce(): *** Run GeantV simulation task ***\n";
+    edm::LogInfo("GeantVProducer") << " produce(): *** Run GeantV simulation task ***";
     RunTransportTask(HepMCEvt->GetEvent(), iEvent.eventAuxiliary().event());
 
-    std::cerr<<"GeantVProducer at "<< this <<": adding to event...\n";
+    edm::LogInfo("GeantVProducer") <<" at "<< this <<": adding to event...";
     iEvent.put(std::move(std::make_unique<long long>(iEvent.eventAuxiliary().event())));
-    std::cerr<<"GeantVProducer at "<< this <<": done!\n";
+    edm::LogInfo("GeantVProducer") <<" at "<< this <<": done!";
 }
 
 // This is the entry point for the user code to transport as a task a set of events
@@ -193,7 +191,7 @@ void GeantVProducer::RunTransportTask(const HepMC::GenEvent * evt, long long eve
 {
     // First book a transport task from GeantV run manager
     TaskData *td = fRunMgr->BookTransportTask();
-    std::cerr<<" RunTransportTask: td= "<< td <<", EventID="<<event_index<<"\n";
+    edm::LogInfo("GeantVProducer") <<" RunTransportTask: td= "<< td <<", EventID="<<event_index;
     if (!td) return;
 
     // ... then create the event set
@@ -205,7 +203,7 @@ void GeantVProducer::RunTransportTask(const HepMC::GenEvent * evt, long long eve
         bool transported = this->fRunMgr->RunSimulationTask(evset, td);
 
         // Now we could run some post-transport task
-        std::cerr<<" RunTransportTask: task "<< td->fTid <<" : transported="<< transported <<"\n";
+        edm::LogInfo("GeantVProducer")<<" RunTransportTask: task "<< td->fTid <<" : transported="<< transported;
     });
 }
 

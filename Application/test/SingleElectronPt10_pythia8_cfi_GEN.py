@@ -90,6 +90,12 @@ process.geantv = cms.EDProducer("GeantVProducer",
 
 process.sim = cms.Sequence(process.geantv)
 
+process.MessageLogger.categories.append('GeantVProducer')
+process.MessageLogger.cerr.GeantVProducer = cms.untracked.PSet(
+    optionalPSet = cms.untracked.bool(True),
+    limit = cms.untracked.int32(10000000),
+)
+
 # Path and EndPath definitions
 process.generation_step = cms.Path(process.pgen)
 process.simulation_step = cms.Path(process.sim)
@@ -112,3 +118,6 @@ for path in process.paths:
 from Configuration.StandardSequences.earlyDeleteSettings_cff import customiseEarlyDelete
 process = customiseEarlyDelete(process)
 # End adding early deletion
+
+process.options.numberOfThreads = cms.untracked.uint32(4)
+process.options.numberOfStreams = cms.untracked.uint32(0)
