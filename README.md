@@ -14,6 +14,7 @@ ln -s install-geant/* .
 ./setup.sh -f -j 8 -I all >& log_setup.log
 cd $CMSSW_BASE/src
 cmsenv
+git cms-merge-topic kpedro88:Ignore_kError_from-CMSSW_10_1_ROOT612_X_2018-03-25-2300
 git clone git@github.com:kpedro88/SimGVCore.git
 scram b -j 8
 
