@@ -1,6 +1,7 @@
 <use name="FWCore/Framework"/>
 <use name="FWCore/ParameterSet"/>
 <use name="FWCore/Utilities"/>
+<use name="FWCore/ServiceRegistry"/>
 <use name="SimDataFormats/GeneratorProducts"/>
 <use name="SimGVCore/Application"/>
 <use name="veccore"/>

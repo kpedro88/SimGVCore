@@ -17,6 +17,8 @@
 #include "FWCore/Utilities/interface/StreamID.h"
 #include "FWCore/Utilities/interface/InputTag.h"
 #include "FWCore/Utilities/interface/EDGetToken.h"
+#include "FWCore/Utilities/interface/RootHandlers.h"
+#include "FWCore/ServiceRegistry/interface/Service.h"
 
 #include "SimDataFormats/GeneratorProducts/interface/HepMCProduct.h"
 #include "HepMC/GenEvent.h"
@@ -45,6 +47,8 @@ class GeantVProducer : public edm::global::EDProducer<> {
 
     void produce(edm::StreamID, edm::Event&, edm::EventSetup const&) const override;
 
+	void initialize();
+
   private:
     void preallocate(edm::PreallocationConfiguration const&) override;
 
@@ -60,6 +64,7 @@ class GeantVProducer : public edm::global::EDProducer<> {
     // e.g. cms2015.root, cms2018.gdml, ExN03.root
     std::string cms_geometry_filename;
     edm::EDGetTokenT<edm::HepMCProduct> m_InToken;
+    int n_threads;
     GeantConfig* fConfig = nullptr;
     // cheating because run manager's functions modify its internal state
     // hope it handles locking internally
@@ -68,7 +73,8 @@ class GeantVProducer : public edm::global::EDProducer<> {
 
 GeantVProducer::GeantVProducer(edm::ParameterSet const& iConfig) :
     cms_geometry_filename(iConfig.getParameter<std::string>("geometry")),
-    m_InToken(consumes<edm::HepMCProduct>(iConfig.getParameter<edm::InputTag>("HepMCProductLabel")))
+    m_InToken(consumes<edm::HepMCProduct>(iConfig.getParameter<edm::InputTag>("HepMCProductLabel"))),
+    n_threads(0)
 {
     produces<long long>();
 }
@@ -79,7 +85,14 @@ GeantVProducer::~GeantVProducer() {
 }
 
 void GeantVProducer::preallocate(edm::PreallocationConfiguration const& iPrealloc) {
-    int n_threads = iPrealloc.numberOfThreads();
+    n_threads = iPrealloc.numberOfThreads();
+    // avoid CMSSW exception from kWarning issued by Geant::RunManager
+    // there should really be an easier way to do this
+    edm::Service<edm::RootHandlers> rootHandler;
+    rootHandler->ignoreWarningsWhileDoing([this] { this->initialize(); });
+}
+
+void GeantVProducer::initialize(){
     int n_propagators = 1;
     int n_track_max = 500;
     int n_reuse = 100000;
