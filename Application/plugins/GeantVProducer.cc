@@ -53,7 +53,7 @@ class GeantVProducer : public edm::global::EDProducer<> {
     void preallocate(edm::PreallocationConfiguration const&) override;
 
     /** Functions using new GeantV interface */
-    bool RunTransportTask(const HepMC::GenEvent * evt, long long event_index) const;
+    void RunTransportTask(const HepMC::GenEvent * evt, long long event_index) const;
 
     /** @brief Generate an event set to be processed by a single task.
 	Not required as application functionality, the event reading or generation
@@ -189,23 +189,24 @@ void GeantVProducer::produce(edm::StreamID, edm::Event& iEvent, edm::EventSetup 
 }
 
 // This is the entry point for the user code to transport as a task a set of events
-bool GeantVProducer::RunTransportTask(const HepMC::GenEvent * evt, long long event_index) const
+void GeantVProducer::RunTransportTask(const HepMC::GenEvent * evt, long long event_index) const
 {
     // First book a transport task from GeantV run manager
     TaskData *td = fRunMgr->BookTransportTask();
     std::cerr<<" RunTransportTask: td= "<< td <<", EventID="<<event_index<<"\n";
-    if (!td) return false;
+    if (!td) return;
 
     // ... then create the event set
     geant::EventSet *evset = GenerateEventSet(evt, event_index, td);
 
-    // ... finally invoke the GeantV transport task
-    bool transported = fRunMgr->RunSimulationTask(evset, td);
+    edm::Service<edm::RootHandlers> rootHandler;
+    rootHandler->ignoreWarningsWhileDoing([this,evset,td] {
+        // ... finally invoke the GeantV transport task
+        bool transported = this->fRunMgr->RunSimulationTask(evset, td);
 
-    // Now we could run some post-transport task
-    std::cerr<<" RunTransportTask: task "<< td->fTid <<" : transported="<< transported <<"\n";
-
-    return transported;
+        // Now we could run some post-transport task
+        std::cerr<<" RunTransportTask: task "<< td->fTid <<" : transported="<< transported <<"\n";
+    });
 }
 
 // eventually this can become more like SimG4Core/Generators/interface/Generator.h
