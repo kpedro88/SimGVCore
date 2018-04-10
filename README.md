@@ -21,3 +21,17 @@ scram b -j 8
 ```
 
 (Important to `cmsenv` again after installation because of `scram setup` for new tools.)
+
+Test GEN-SIM together:
+```
+cd $CMSSW_BASE/src/SimGVCore/Application/test
+cmsRun SingleElectronPt10_pythia8_cfi_GEN-SIM.py
+```
+
+Scaling test (GEN, SIM separately):
+```
+cd $CMSSW_BASE/src/SimGVCore/Application/test
+cmsRun SingleElectronPt50_pythia8_cfi_GENonly.py
+./testMT.sh >& log_test.log
+./parseMT.sh log_test.log >& log_parsed.log
+```
