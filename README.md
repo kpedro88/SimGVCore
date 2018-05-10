@@ -3,9 +3,8 @@ Test package for GeantV in CMSSW
 
 Installation instructions:
 ```
-scram list CMSSW_10_2_ROOT612 | tail -n 2 | head -n 1 | awk '{print $2}' > CMSSW_LATEST
-cmsrel `cat CMSSW_LATEST`
-cd `cat CMSSW_LATEST`
+cmsrel CMSSW_10_2_0_pre3
+cd CMSSW_10_2_0_pre3
 cmsenv
 mkdir work
 cd work
@@ -14,7 +13,7 @@ ln -s install-geant/* .
 ./setup.sh -f -j 8 -I all >& log_setup.log
 cd $CMSSW_BASE/src
 cmsenv
-git cms-merge-topic kpedro88:Ignore_kError_from-CMSSW_10_1_ROOT612_X_2018-03-25-2300
+git cms-merge-topic kpedro88:ImproveRootHandlers
 git clone git@github.com:kpedro88/SimGVCore.git
 scram b -j 8
 

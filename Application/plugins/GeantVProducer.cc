@@ -90,7 +90,7 @@ void GeantVProducer::preallocate(edm::PreallocationConfiguration const& iPreallo
     // avoid CMSSW exception from kWarning issued by Geant::RunManager
     // there should really be an easier way to do this
     edm::Service<edm::RootHandlers> rootHandler;
-    rootHandler->ignoreWarningsWhileDoing([this] { this->initialize(); });
+    rootHandler->ignoreWarningsWhileDoing([this] { this->initialize(); }, edm::RootHandlers::SeverityLevel::kError);
 }
 
 void GeantVProducer::initialize(){
@@ -204,7 +204,7 @@ void GeantVProducer::RunTransportTask(const HepMC::GenEvent * evt, long long eve
 
         // Now we could run some post-transport task
         edm::LogInfo("GeantVProducer")<<" RunTransportTask: task "<< td->fTid <<" : transported="<< transported;
-    });
+    }, edm::RootHandlers::SeverityLevel::kError);
 }
 
 // eventually this can become more like SimG4Core/Generators/interface/Generator.h
