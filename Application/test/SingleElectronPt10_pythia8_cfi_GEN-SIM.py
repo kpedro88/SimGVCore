@@ -16,6 +16,7 @@ process.load('FWCore.MessageService.MessageLogger_cfi')
 process.load('Configuration.EventContent.EventContent_cff')
 #process.load('SimGeneral.MixingModule.mixNoPU_cfi')
 #process.load('Configuration.StandardSequences.GeometryRecoDB_cff')
+process.load('Geometry.CMSCommonData.cmsExtendedGeometry2018NoSDXML_cfi')
 #process.load('Configuration.StandardSequences.MagneticField_cff')
 process.load('Configuration.StandardSequences.Generator_cff')
 process.load('Configuration.StandardSequences.VtxSmearedNoSmear_cff')
@@ -83,9 +84,17 @@ process.generator = cms.EDFilter("Pythia8PtGun",
     psethack = cms.string('single electron pt 10')
 )
 
+# this converts the geometry into TGeoManager for GeantV
+process.TGeoMgrFromDdd =  cms.ESProducer("TGeoMgrFromDdd",
+    verbose = cms.untracked.bool(False),
+    level = cms.untracked.int32(14)
+)
+
 process.geantv = cms.EDProducer("GeantVProducer",
     HepMCProductLabel = cms.InputTag("generatorSmeared"),
-    geometry = cms.string("/uscms_data/d3/pedrok/geant/files/cms2018.gdml"),
+# disabled in favor of CMS DB geometry via TGeoManager
+#    geometry = cms.string("/uscms_data/d3/pedrok/geant/files/cms2018.gdml"),
+    geometry = cms.string(""),
 )
 
 process.sim = cms.Sequence(process.geantv)
@@ -97,6 +106,8 @@ process.MessageLogger.cerr.GeantVProducer = cms.untracked.PSet(
 )
 
 # Path and EndPath definitions
+#process.printes = cms.EDAnalyzer("PrintEventSetupContent")
+#process.generation_step = cms.Path(process.printes+process.pgen)
 process.generation_step = cms.Path(process.pgen)
 process.simulation_step = cms.Path(process.sim)
 process.genfiltersummary_step = cms.EndPath(process.genFilterSummary)

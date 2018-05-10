@@ -13,6 +13,7 @@
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
 #include "FWCore/Framework/src/PreallocationConfiguration.h"
+#include "FWCore/Framework/interface/ESTransientHandle.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/Utilities/interface/StreamID.h"
 #include "FWCore/Utilities/interface/InputTag.h"
@@ -25,6 +26,7 @@
 #include "HepMC/GenEvent.h"
 #include "HepMC/GenParticle.h"
 #include "HepMC/GenVertex.h"
+#include "Fireworks/Geometry/interface/DisplayGeomRecord.h"
 
 #include "Geant/Config.h"
 #include "Geant/RunManager.h"
@@ -37,6 +39,7 @@
 #include "SimGVCore/Application/interface/CMSApplicationTBB.h"
 #include "Geant/example/CMSPhysicsList.h"
 #include "Geant/example/CMSDetectorConstruction.h"
+#include "TGeoManager.h"
 
 using namespace geant;
 using namespace cmsapp;
@@ -48,17 +51,17 @@ class GeantVProducer : public edm::global::EDProducer<> {
 
     void produce(edm::StreamID, edm::Event&, edm::EventSetup const&) const override;
 
-	void initialize();
-
   private:
     void preallocate(edm::PreallocationConfiguration const&) override;
+
+    RunManager* initialize() const;
 
     /** Functions using new GeantV interface */
     void RunTransportTask(const HepMC::GenEvent * evt, long long event_index) const;
 
     /** @brief Generate an event set to be processed by a single task.
-	Not required as application functionality, the event reading or generation
-	can in the external event loop.
+    Not required as application functionality, the event reading or generation
+    can in the external event loop.
     */
     geant::EventSet* GenerateEventSet(const HepMC::GenEvent * evt, long long event_index, TaskData *td) const;
 
@@ -66,34 +69,30 @@ class GeantVProducer : public edm::global::EDProducer<> {
     std::string cms_geometry_filename;
     edm::EDGetTokenT<edm::HepMCProduct> m_InToken;
     int n_threads;
-    GeantConfig* fConfig = nullptr;
     // cheating because run manager's functions modify its internal state
     // hope it handles locking internally
-    mutable RunManager* fRunMgr = nullptr;
+    mutable std::atomic<RunManager*> fRunMgr;
 };
 
 GeantVProducer::GeantVProducer(edm::ParameterSet const& iConfig) :
     cms_geometry_filename(iConfig.getParameter<std::string>("geometry")),
     m_InToken(consumes<edm::HepMCProduct>(iConfig.getParameter<edm::InputTag>("HepMCProductLabel"))),
-    n_threads(0)
+    n_threads(0),
+	fRunMgr(nullptr)
 {
     produces<long long>();
 }
 
 GeantVProducer::~GeantVProducer() {
     // this will delete fConfig also
-    delete fRunMgr;
+    delete fRunMgr.load();
 }
 
 void GeantVProducer::preallocate(edm::PreallocationConfiguration const& iPrealloc) {
     n_threads = iPrealloc.numberOfThreads();
-    // avoid CMSSW exception from kWarning issued by Geant::RunManager
-    // there should really be an easier way to do this
-    edm::Service<edm::RootHandlers> rootHandler;
-    rootHandler->ignoreWarningsWhileDoing([this] { this->initialize(); }, edm::RootHandlers::SeverityLevel::kError);
 }
 
-void GeantVProducer::initialize(){
+RunManager* GeantVProducer::initialize() const {
     int n_propagators = 1;
     int n_track_max = 500;
     int n_reuse = 100000;
@@ -101,7 +100,7 @@ void GeantVProducer::initialize(){
     bool performance = true;
 
     // instantiate configuration helper
-    fConfig = new GeantConfig();
+    GeantConfig* fConfig = new GeantConfig();
 
     fConfig->fRunMode = GeantConfig::kExternalLoop;
 
@@ -146,34 +145,59 @@ void GeantVProducer::initialize(){
 
      // Create run manager
     edm::LogInfo("GeantVProducer") <<"*** RunManager: instantiating with "<< n_propagators <<" propagators and "<< n_threads <<" threads.";
-    fRunMgr = new RunManager(n_propagators, n_threads, fConfig);
+    RunManager* runMgr = new RunManager(n_propagators, n_threads, fConfig);
 
     // create the real physics main manager/interface object and set it in the RunManager
     edm::LogInfo("GeantVProducer") <<"*** RunManager: setting physics process...";
-    fRunMgr->SetPhysicsInterface(new geantphysics::PhysicsProcessHandler());
+    runMgr->SetPhysicsInterface(new geantphysics::PhysicsProcessHandler());
 
     // Create user defined physics list for the full CMS application
     geantphysics::PhysicsListManager::Instance().RegisterPhysicsList(new cmsapp::CMSPhysicsList());
 
     // Detector construction
-    auto detector_construction = new CMSDetectorConstruction(fRunMgr);
+    auto detector_construction = new CMSDetectorConstruction(runMgr);
     detector_construction->SetGDMLFile(cms_geometry_filename); 
-    fRunMgr->SetDetectorConstruction( detector_construction );
+    runMgr->SetDetectorConstruction( detector_construction );
 
-    CMSApplicationTBB *cmsApp = new CMSApplicationTBB(fRunMgr, nullptr);
+    CMSApplicationTBB *cmsApp = new CMSApplicationTBB(runMgr, nullptr);
     cmsApp->SetPerformanceMode(performance);
     edm::LogInfo("GeantVProducer") <<"*** RunManager: setting up CMSApplicationTBB...";
-    fRunMgr->SetUserApplication( cmsApp );
+    runMgr->SetUserApplication( cmsApp );
 
     // Start simulation for all propagators
     edm::LogInfo("GeantVProducer") <<"*** RunManager: initializing...";
-    fRunMgr->Initialize();
+    runMgr->Initialize();
 
-    edm::LogInfo("GeantVProducer") << "= GeantV initialized using maximum " << fRunMgr->GetNthreads() << " worker threads";
+    edm::LogInfo("GeantVProducer") << "= GeantV initialized using maximum " << runMgr->GetNthreads() << " worker threads";
+
+    return runMgr;
 }
 
 void GeantVProducer::produce(edm::StreamID, edm::Event& iEvent, edm::EventSetup const& iSetup) const
 {
+    // first check for initialization
+    if(!fRunMgr.load(std::memory_order_acquire)){
+        // obtain the geometry
+        edm::ESTransientHandle<TGeoManager> geoh;
+        iSetup.get<DisplayGeomRecord>().get(geoh);
+        // this fills gGeoManager used by Geant classes
+        const TGeoManager *geom = geoh.product();
+        edm::LogInfo("GeantVProducer") << " produce(): gGeoManager = " << gGeoManager;
+
+        // initialize manager
+        // avoid CMSSW exception from kWarning issued by Geant::RunManager
+        edm::Service<edm::RootHandlers> rootHandler;
+        rootHandler->ignoreWarningsWhileDoing(
+            [this] {
+                RunManager* ptr = this->initialize();
+                RunManager* expect = nullptr;
+                bool exchanged = this->fRunMgr.compare_exchange_strong(expect, ptr, std::memory_order_acq_rel);
+                if(!exchanged) delete ptr;
+            },
+            edm::RootHandlers::SeverityLevel::kError
+        );
+    }
+
     edm::Handle<edm::HepMCProduct> HepMCEvt;
     iEvent.getByToken(m_InToken, HepMCEvt);
 
@@ -190,7 +214,7 @@ void GeantVProducer::produce(edm::StreamID, edm::Event& iEvent, edm::EventSetup 
 void GeantVProducer::RunTransportTask(const HepMC::GenEvent * evt, long long event_index) const
 {
     // First book a transport task from GeantV run manager
-    TaskData *td = fRunMgr->BookTransportTask();
+    TaskData *td = fRunMgr.load()->BookTransportTask();
     edm::LogInfo("GeantVProducer") <<" RunTransportTask: td= "<< td <<", EventID="<<event_index;
     if (!td) return;
 
@@ -200,7 +224,7 @@ void GeantVProducer::RunTransportTask(const HepMC::GenEvent * evt, long long eve
     edm::Service<edm::RootHandlers> rootHandler;
     rootHandler->ignoreWarningsWhileDoing([this,evset,td] {
         // ... finally invoke the GeantV transport task
-        bool transported = this->fRunMgr->RunSimulationTask(evset, td);
+        bool transported = this->fRunMgr.load()->RunSimulationTask(evset, td);
 
         // Now we could run some post-transport task
         edm::LogInfo("GeantVProducer")<<" RunTransportTask: task "<< td->fTid <<" : transported="<< transported;
