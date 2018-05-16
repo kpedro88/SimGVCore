@@ -13,6 +13,7 @@
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
 #include "FWCore/Framework/src/PreallocationConfiguration.h"
+#include "FWCore/Framework/interface/ESTransientHandle.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/Utilities/interface/StreamID.h"
 #include "FWCore/Utilities/interface/InputTag.h"
@@ -25,6 +26,7 @@
 #include "HepMC/GenEvent.h"
 #include "HepMC/GenParticle.h"
 #include "HepMC/GenVertex.h"
+#include "Fireworks/Geometry/interface/DisplayGeomRecord.h"
 
 #include "Geant/Config.h"
 #include "Geant/RunManager.h"
@@ -37,28 +39,31 @@
 #include "SimGVCore/Application/interface/CMSApplicationTBB.h"
 #include "Geant/example/CMSPhysicsList.h"
 #include "Geant/example/CMSDetectorConstruction.h"
+#include "TGeoManager.h"
 
 using namespace geant;
 using namespace cmsapp;
 
-class GeantVProducer : public edm::global::EDProducer<> {
+//dummy run cache to get access to global begin run
+class GeantVProducer : public edm::global::EDProducer<edm::RunCache<int>> {
   public:
     GeantVProducer(edm::ParameterSet const&);
     ~GeantVProducer() override;
 
     void produce(edm::StreamID, edm::Event&, edm::EventSetup const&) const override;
 
-	void initialize();
-
   private:
     void preallocate(edm::PreallocationConfiguration const&) override;
+    std::shared_ptr<int> globalBeginRun(edm::Run const&, edm::EventSetup const&) const override;
+    void globalEndRun(edm::Run const&, edm::EventSetup const&) const override {}
 
     /** Functions using new GeantV interface */
+    void initialize() const;
     void RunTransportTask(const HepMC::GenEvent * evt, long long event_index) const;
 
     /** @brief Generate an event set to be processed by a single task.
-	Not required as application functionality, the event reading or generation
-	can in the external event loop.
+    Not required as application functionality, the event reading or generation
+    can in the external event loop.
     */
     geant::EventSet* GenerateEventSet(const HepMC::GenEvent * evt, long long event_index, TaskData *td) const;
 
@@ -66,16 +71,16 @@ class GeantVProducer : public edm::global::EDProducer<> {
     std::string cms_geometry_filename;
     edm::EDGetTokenT<edm::HepMCProduct> m_InToken;
     int n_threads;
-    GeantConfig* fConfig = nullptr;
     // cheating because run manager's functions modify its internal state
     // hope it handles locking internally
-    mutable RunManager* fRunMgr = nullptr;
+    mutable RunManager* fRunMgr;
 };
 
 GeantVProducer::GeantVProducer(edm::ParameterSet const& iConfig) :
     cms_geometry_filename(iConfig.getParameter<std::string>("geometry")),
     m_InToken(consumes<edm::HepMCProduct>(iConfig.getParameter<edm::InputTag>("HepMCProductLabel"))),
-    n_threads(0)
+    n_threads(0),
+	fRunMgr(nullptr)
 {
     produces<long long>();
 }
@@ -87,13 +92,32 @@ GeantVProducer::~GeantVProducer() {
 
 void GeantVProducer::preallocate(edm::PreallocationConfiguration const& iPrealloc) {
     n_threads = iPrealloc.numberOfThreads();
-    // avoid CMSSW exception from kWarning issued by Geant::RunManager
-    // there should really be an easier way to do this
-    edm::Service<edm::RootHandlers> rootHandler;
-    rootHandler->ignoreWarningsWhileDoing([this] { this->initialize(); }, edm::RootHandlers::SeverityLevel::kError);
 }
 
-void GeantVProducer::initialize(){
+std::shared_ptr<int> GeantVProducer::globalBeginRun(const edm::Run& iRun, const edm::EventSetup& iSetup) const {
+    // obtain the geometry
+    edm::ESTransientHandle<TGeoManager> geoh;
+    iSetup.get<DisplayGeomRecord>().get(geoh);
+    // this fills gGeoManager used by Geant classes
+    const TGeoManager *geom = geoh.product();
+    std::stringstream message;
+    message << " produce(): gGeoManager = " << gGeoManager;
+    if(gGeoManager) message << ", " << gGeoManager->GetName() << ", " << gGeoManager->GetTitle();
+    edm::LogInfo("GeantVProducer") << message.str();
+
+    // initialize manager
+    // avoid CMSSW exception from kWarning issued by Geant::RunManager
+    edm::Service<edm::RootHandlers> rootHandler;
+    rootHandler->ignoreWarningsWhileDoing(
+        [this] { this->initialize(); },
+        edm::RootHandlers::SeverityLevel::kError
+    );
+
+    //dummy return
+    return std::shared_ptr<int>();
+}
+
+void GeantVProducer::initialize() const {
     int n_propagators = 1;
     int n_track_max = 500;
     int n_reuse = 100000;
@@ -101,7 +125,7 @@ void GeantVProducer::initialize(){
     bool performance = true;
 
     // instantiate configuration helper
-    fConfig = new GeantConfig();
+    GeantConfig* fConfig = new GeantConfig();
 
     fConfig->fRunMode = GeantConfig::kExternalLoop;
 

@@ -4,6 +4,7 @@
 <use name="FWCore/ServiceRegistry"/>
 <use name="FWCore/MessageLogger"/>
 <use name="SimDataFormats/GeneratorProducts"/>
+<use name="Fireworks/Geometry"/>
 <use name="SimGVCore/Application"/>
 <use name="veccore"/>
 <use name="geantv"/>
