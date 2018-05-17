@@ -7,6 +7,7 @@
 #include <vector>
 #include <memory>
 #include <atomic>
+#include <exception>
 
 // framework
 #include "FWCore/Framework/interface/global/EDProducer.h"
@@ -22,6 +23,11 @@
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 
+// for ExternalWork
+#include "FWCore/Concurrency/interface/WaitingTaskWithArenaHolder.h"
+#include "FWCore/Concurrency/interface/FunctorTask.h"
+#include "tbb/task.h"
+
 #include "SimDataFormats/GeneratorProducts/interface/HepMCProduct.h"
 #include "HepMC/GenEvent.h"
 #include "HepMC/GenParticle.h"
@@ -31,6 +37,7 @@
 #include "Geant/Config.h"
 #include "Geant/RunManager.h"
 #include "Geant/EventSet.h"
+#include "Geant/Event.h"
 #include "Geant/Particle.h"
 
 #include "Geant/PhysicsProcessHandler.h"
@@ -45,10 +52,26 @@ using namespace geant;
 using namespace cmsapp;
 
 //dummy run cache to get access to global begin run
-class GeantVProducer : public edm::global::EDProducer<edm::RunCache<int>> {
+class GeantVProducer : public edm::global::EDProducer<edm::ExternalWork,edm::RunCache<int>> {
   public:
+    // an event with a callback
+    class EventCB : public geant::Event {
+        public:
+            EventCB(edm::WaitingTaskWithArenaHolder holder) : holder_(std::move(holder)) {}
+
+            void FinalActions() override {
+                std::exception_ptr exceptionPtr;
+                holder_.doneWaiting(exceptionPtr);
+            }
+
+        private:
+            edm::WaitingTaskWithArenaHolder holder_;
+    };
+
     GeantVProducer(edm::ParameterSet const&);
     ~GeantVProducer() override;
+
+    void acquire(edm::StreamID, edm::Event const&, edm::EventSetup const&, edm::WaitingTaskWithArenaHolder) const override;
 
     void produce(edm::StreamID, edm::Event&, edm::EventSetup const&) const override;
 
@@ -59,13 +82,12 @@ class GeantVProducer : public edm::global::EDProducer<edm::RunCache<int>> {
 
     /** Functions using new GeantV interface */
     void initialize() const;
-    void RunTransportTask(const HepMC::GenEvent * evt, long long event_index) const;
 
     /** @brief Generate an event set to be processed by a single task.
     Not required as application functionality, the event reading or generation
     can in the external event loop.
     */
-    geant::EventSet* GenerateEventSet(const HepMC::GenEvent * evt, long long event_index, TaskData *td) const;
+    geant::EventSet* GenerateEventSet(const HepMC::GenEvent * evt, long long event_index, edm::WaitingTaskWithArenaHolder iHolder, TaskData *td) const;
 
     // e.g. cms2015.root, cms2018.gdml, ExN03.root
     std::string cms_geometry_filename;
@@ -196,50 +218,61 @@ void GeantVProducer::initialize() const {
     edm::LogInfo("GeantVProducer") << "= GeantV initialized using maximum " << fRunMgr->GetNthreads() << " worker threads";
 }
 
-void GeantVProducer::produce(edm::StreamID, edm::Event& iEvent, edm::EventSetup const& iSetup) const
+void GeantVProducer::acquire(edm::StreamID, edm::Event const& iEvent, edm::EventSetup const& iSetup, edm::WaitingTaskWithArenaHolder iHolder) const
 {
     edm::Handle<edm::HepMCProduct> HepMCEvt;
     iEvent.getByToken(m_InToken, HepMCEvt);
 
-    // this will block the thread until completed
-    edm::LogInfo("GeantVProducer") << " produce(): *** Run GeantV simulation task ***";
-    RunTransportTask(HepMCEvt->GetEvent(), iEvent.eventAuxiliary().event());
+    edm::LogInfo("GeantVProducer") << " acquire(): *** Run GeantV simulation task ***";
 
+    const HepMC::GenEvent * evt = HepMCEvt->GetEvent();
+    long long event_index = iEvent.eventAuxiliary().event();
+
+    // First book a transport task from GeantV run manager
+    TaskData *td = fRunMgr->BookTransportTask();
+    edm::LogInfo("GeantVProducer") <<" acquire(): td= "<< td <<", EventID="<<event_index;
+    if (!td) {
+        std::exception_ptr exceptionPtr;
+        iHolder.doneWaiting(exceptionPtr);
+        return;
+    }
+
+    // ... then create the event set
+    geant::EventSet *evset = GenerateEventSet(evt, event_index, iHolder, td);
+
+    // spawn a separate task: non-blocking!
+    auto task = edm::make_functor_task(
+        tbb::task::allocate_root(),
+        [this,evset,td] {
+            edm::Service<edm::RootHandlers> rootHandler;
+            rootHandler->ignoreWarningsWhileDoing([this,evset,td] {
+                // ... finally invoke the GeantV transport task
+                bool transported = this->fRunMgr->RunSimulationTask(evset, td);
+
+                // Now we could run some post-transport task
+                edm::LogInfo("GeantVProducer")<<" RunTransportTask: task "<< td->fTid <<" : transported="<< transported;
+            }, edm::RootHandlers::SeverityLevel::kError);
+        }
+    );
+}
+
+void GeantVProducer::produce(edm::StreamID, edm::Event& iEvent, edm::EventSetup const& iSetup) const
+{
     edm::LogInfo("GeantVProducer") <<" at "<< this <<": adding to event...";
     iEvent.put(std::move(std::make_unique<long long>(iEvent.eventAuxiliary().event())));
     edm::LogInfo("GeantVProducer") <<" at "<< this <<": done!";
 }
 
-// This is the entry point for the user code to transport as a task a set of events
-void GeantVProducer::RunTransportTask(const HepMC::GenEvent * evt, long long event_index) const
-{
-    // First book a transport task from GeantV run manager
-    TaskData *td = fRunMgr->BookTransportTask();
-    edm::LogInfo("GeantVProducer") <<" RunTransportTask: td= "<< td <<", EventID="<<event_index;
-    if (!td) return;
-
-    // ... then create the event set
-    geant::EventSet *evset = GenerateEventSet(evt, event_index, td);
-
-    edm::Service<edm::RootHandlers> rootHandler;
-    rootHandler->ignoreWarningsWhileDoing([this,evset,td] {
-        // ... finally invoke the GeantV transport task
-        bool transported = this->fRunMgr->RunSimulationTask(evset, td);
-
-        // Now we could run some post-transport task
-        edm::LogInfo("GeantVProducer")<<" RunTransportTask: task "<< td->fTid <<" : transported="<< transported;
-    }, edm::RootHandlers::SeverityLevel::kError);
-}
-
 // eventually this can become more like SimG4Core/Generators/interface/Generator.h
-geant::EventSet* GeantVProducer::GenerateEventSet(const HepMC::GenEvent * evt, long long event_index, geant::TaskData *td) const
+geant::EventSet* GeantVProducer::GenerateEventSet(const HepMC::GenEvent * evt, long long event_index, edm::WaitingTaskWithArenaHolder iHolder, geant::TaskData *td) const
 {
     using EventSet = geant::EventSet;
     using Event = geant::Event;
     using Track = geant::Track;
 
     EventSet *evset = new EventSet(1);
-    Event *event = new Event();
+    // keep track of the callback
+    Event *event = new EventCB(iHolder);
 
     // convert from HepMC to GeantV format
     //event->SetEvent(evt->event_number());

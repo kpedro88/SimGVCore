@@ -9,6 +9,7 @@
 <use name="veccore"/>
 <use name="geantv"/>
 <use name="hepmc"/>
+<use name="tbb"/>
 
 <library file="*.cc" name="SimGVCoreApplicationPlugins">
   <flags EDM_PLUGIN="1"/>
