@@ -254,6 +254,7 @@ void GeantVProducer::acquire(edm::StreamID, edm::Event const& iEvent, edm::Event
             }, edm::RootHandlers::SeverityLevel::kError);
         }
     );
+    tbb::task::spawn(*task);
 }
 
 void GeantVProducer::produce(edm::StreamID, edm::Event& iEvent, edm::EventSetup const& iSetup) const
