@@ -60,6 +60,7 @@ class GeantVProducer : public edm::global::EDProducer<edm::ExternalWork,edm::Run
             EventCB(edm::WaitingTaskWithArenaHolder holder) : holder_(std::move(holder)) {}
 
             void FinalActions() override {
+				edm::LogInfo("GeantVProducer") << "Callback for event " << this;
                 std::exception_ptr exceptionPtr;
                 holder_.doneWaiting(exceptionPtr);
             }
