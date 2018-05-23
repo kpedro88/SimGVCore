@@ -25,7 +25,6 @@
 
 // for ExternalWork
 #include "FWCore/Concurrency/interface/WaitingTaskWithArenaHolder.h"
-#include "FWCore/Concurrency/interface/FunctorTask.h"
 #include "tbb/task.h"
 
 #include "SimDataFormats/GeneratorProducts/interface/HepMCProduct.h"
@@ -50,6 +49,28 @@
 
 using namespace geant;
 using namespace cmsapp;
+
+// modified to handle lambdas w/ unique_ptrs
+namespace {
+  template<typename F>
+  class FunctorTask : public tbb::task {
+  public:
+    explicit FunctorTask( F f): func_(std::move(f)) {}
+    
+    task* execute() override {
+      func_();
+      return nullptr;
+    };
+    
+  private:
+    F func_;
+  };
+  
+  template< typename ALLOC, typename F>
+  FunctorTask<F>* make_functor_task( ALLOC&& iAlloc, F f) {
+    return new (iAlloc) FunctorTask<F>(std::move(f));
+  }
+}
 
 //dummy run cache to get access to global begin run
 class GeantVProducer : public edm::global::EDProducer<edm::ExternalWork,edm::RunCache<int>> {
@@ -245,7 +266,7 @@ void GeantVProducer::acquire(edm::StreamID, edm::Event const& iEvent, edm::Event
     auto rootHandlerPtr = &(*rootHandler);
 
     // spawn a separate task: non-blocking!
-    auto task = edm::make_functor_task(
+    auto task = make_functor_task(
         tbb::task::allocate_root(),
         [this,evset=std::move(evset),td,rootHandlerPtr] {
             auto evsetget = evset.get();
