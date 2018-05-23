@@ -241,12 +241,14 @@ void GeantVProducer::acquire(edm::StreamID, edm::Event const& iEvent, edm::Event
     // ... then create the event set
     geant::EventSet *evset = GenerateEventSet(evt, event_index, iHolder, td);
 
+    edm::Service<edm::RootHandlers> rootHandler;
+    auto rootHandlerPtr = &(*rootHandler);
+
     // spawn a separate task: non-blocking!
     auto task = edm::make_functor_task(
         tbb::task::allocate_root(),
-        [this,evset,td] {
-            edm::Service<edm::RootHandlers> rootHandler;
-            rootHandler->ignoreWarningsWhileDoing([this,evset,td] {
+        [this,evset,td,rootHandlerPtr] {
+            rootHandlerPtr->ignoreWarningsWhileDoing([this,evset,td] {
                 // ... finally invoke the GeantV transport task
                 bool transported = this->fRunMgr->RunSimulationTask(evset, td);
 
