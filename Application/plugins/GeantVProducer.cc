@@ -25,6 +25,7 @@
 
 // for ExternalWork
 #include "FWCore/Concurrency/interface/WaitingTaskWithArenaHolder.h"
+#include "FWCore/Concurrency/interface/FunctorTask.h"
 #include "tbb/task.h"
 
 #include "SimDataFormats/GeneratorProducts/interface/HepMCProduct.h"
@@ -49,28 +50,6 @@
 
 using namespace geant;
 using namespace cmsapp;
-
-// modified to handle lambdas w/ unique_ptrs
-namespace {
-  template<typename F>
-  class FunctorTask : public tbb::task {
-  public:
-    explicit FunctorTask( F f): func_(std::move(f)) {}
-    
-    task* execute() override {
-      func_();
-      return nullptr;
-    };
-    
-  private:
-    F func_;
-  };
-  
-  template< typename ALLOC, typename F>
-  FunctorTask<F>* make_functor_task( ALLOC&& iAlloc, F f) {
-    return new (iAlloc) FunctorTask<F>(std::move(f));
-  }
-}
 
 //dummy run cache to get access to global begin run
 class GeantVProducer : public edm::global::EDProducer<edm::ExternalWork,edm::RunCache<int>> {
@@ -260,19 +239,18 @@ void GeantVProducer::acquire(edm::StreamID, edm::Event const& iEvent, edm::Event
     }
 
     // ... then create the event set
-    auto evset = GenerateEventSet(evt, event_index, iHolder, td);
+    auto evset = GenerateEventSet(evt, event_index, iHolder, td).release();
 
     edm::Service<edm::RootHandlers> rootHandler;
     auto rootHandlerPtr = &(*rootHandler);
 
     // spawn a separate task: non-blocking!
-    auto task = make_functor_task(
+    auto task = edm::make_functor_task(
         tbb::task::allocate_root(),
-        [this,evset=std::move(evset),td,rootHandlerPtr] {
-            auto evsetget = evset.get();
-            rootHandlerPtr->ignoreWarningsWhileDoing([this,evsetget,td] {
+        [this,evset,td,rootHandlerPtr] {
+            rootHandlerPtr->ignoreWarningsWhileDoing([this,evset,td] {
                 // ... finally invoke the GeantV transport task
-                bool transported = this->fRunMgr->RunSimulationTask(evsetget, td);
+                bool transported = this->fRunMgr->RunSimulationTask(evset, td);
 
                 // Now we could run some post-transport task
                 edm::LogInfo("GeantVProducer")<<" RunTransportTask: task "<< td->fTid <<" : transported="<< transported;
@@ -331,7 +309,7 @@ std::unique_ptr<geant::EventSet> GeantVProducer::GenerateEventSet(const HepMC::G
         ++counter;
     }    
 
-    evset->AddEvent(event.get());
+    evset->AddEvent(event.release());
     return evset;
 }
 
