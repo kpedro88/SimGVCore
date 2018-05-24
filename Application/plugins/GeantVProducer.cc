@@ -143,7 +143,7 @@ std::shared_ptr<int> GeantVProducer::globalBeginRun(const edm::Run& iRun, const 
     edm::ESTransientHandle<TGeoManager> geoh;
     iSetup.get<DisplayGeomRecord>().get(geoh);
     // this fills gGeoManager used by Geant classes
-    const TGeoManager *geom = geoh.product();
+    (void) geoh.product();
     std::stringstream message;
     message << " produce(): gGeoManager = " << gGeoManager;
     if(gGeoManager) message << ", " << gGeoManager->GetName() << ", " << gGeoManager->GetTitle();
