@@ -268,11 +268,10 @@ void GeantVProducer::acquire(edm::StreamID, edm::Event const& iEvent, edm::Event
     // spawn a separate task: non-blocking!
     auto task = make_functor_task(
         tbb::task::allocate_root(),
-        [this,evset=std::move(evset),td,rootHandlerPtr] {
-            auto evsetget = evset.get();
-            rootHandlerPtr->ignoreWarningsWhileDoing([this,evsetget,td] {
+        [this,evset=std::move(evset),td,rootHandlerPtr]() mutable {
+            rootHandlerPtr->ignoreWarningsWhileDoing([this,evset=std::move(evset),td]() mutable {
                 // ... finally invoke the GeantV transport task
-                bool transported = this->fRunMgr->RunSimulationTask(evsetget, td);
+                bool transported = this->fRunMgr->RunSimulationTask(evset.release(), td);
 
                 // Now we could run some post-transport task
                 edm::LogInfo("GeantVProducer")<<" RunTransportTask: task "<< td->fTid <<" : transported="<< transported;
