@@ -330,7 +330,7 @@ std::unique_ptr<geant::EventSet> GeantVProducer::GenerateEventSet(const HepMC::G
         ++counter;
     }    
 
-    evset->AddEvent(event.get());
+    evset->AddEvent(event.release());
     return evset;
 }
 
