@@ -45,6 +45,7 @@
 #include "SimGVCore/Application/interface/CMSApplicationTBB.h"
 #include "Geant/example/CMSPhysicsList.h"
 #include "Geant/example/CMSDetectorConstruction.h"
+#include "Geant/UserFieldConstruction.h"
 #include "TGeoManager.h"
 
 using namespace geant;
@@ -225,8 +226,14 @@ void GeantVProducer::initialize() const {
 
     // Detector construction
     auto detector_construction = new CMSDetectorConstruction(fRunMgr);
-    detector_construction->SetGDMLFile(cms_geometry_filename); 
+    detector_construction->SetGDMLFile(cms_geometry_filename);
     fRunMgr->SetDetectorConstruction( detector_construction );
+
+    // use a constant field
+    float fieldVec[3] = {0.0,0.0,38.0};
+    auto field_construction = new geant::UserFieldConstruction();
+    field_construction->UseConstantMagField(fieldVec,"kilogauss");
+    fRunMgr->SetUserFieldConstruction( field_construction );
 
     CMSApplicationTBB *cmsApp = new CMSApplicationTBB(fRunMgr, nullptr);
     cmsApp->SetPerformanceMode(performance);
