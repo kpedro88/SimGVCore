@@ -66,6 +66,7 @@ process.RAWSIMoutput.outputCommands.append("keep *_geantv_*_*")
 process.geantv = cms.EDProducer("GeantVProducer",
     HepMCProductLabel = cms.InputTag("generatorSmeared"),
     geometry = cms.string("/uscms_data/d3/pedrok/geant/files/cms2018.gdml"),
+    ZFieldInTesla = cms.double(3.8),
 )
 
 process.sim = cms.Sequence(process.geantv)

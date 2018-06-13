@@ -114,6 +114,7 @@ class GeantVProducer : public edm::global::EDProducer<edm::ExternalWork,edm::Run
 
     // e.g. cms2015.root, cms2018.gdml, ExN03.root
     std::string cms_geometry_filename;
+    double zFieldInTesla;
     edm::EDGetTokenT<edm::HepMCProduct> m_InToken;
     int n_threads;
     // cheating because run manager's functions modify its internal state
@@ -123,6 +124,7 @@ class GeantVProducer : public edm::global::EDProducer<edm::ExternalWork,edm::Run
 
 GeantVProducer::GeantVProducer(edm::ParameterSet const& iConfig) :
     cms_geometry_filename(iConfig.getParameter<std::string>("geometry")),
+    zFieldInTesla(iConfig.getParameter<double>("ZFieldInTesla")),
     m_InToken(consumes<edm::HepMCProduct>(iConfig.getParameter<edm::InputTag>("HepMCProductLabel"))),
     n_threads(0),
 	fRunMgr(nullptr)
@@ -230,9 +232,9 @@ void GeantVProducer::initialize() const {
     fRunMgr->SetDetectorConstruction( detector_construction );
 
     // use a constant field
-    float fieldVec[3] = {0.0,0.0,38.0};
+    float fieldVec[3] = {0.0,0.0,float(zFieldInTesla)};
     auto field_construction = new geant::UserFieldConstruction();
-    field_construction->UseConstantMagField(fieldVec,"kilogauss");
+    field_construction->UseConstantMagField(fieldVec,"tesla");
     fRunMgr->SetUserFieldConstruction( field_construction );
 
     CMSApplicationTBB *cmsApp = new CMSApplicationTBB(fRunMgr, nullptr);

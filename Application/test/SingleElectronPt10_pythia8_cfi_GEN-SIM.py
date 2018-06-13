@@ -95,6 +95,7 @@ process.geantv = cms.EDProducer("GeantVProducer",
 # disabled in favor of CMS DB geometry via TGeoManager
 #    geometry = cms.string("/uscms_data/d3/pedrok/geant/files/cms2018.gdml"),
     geometry = cms.string(""),
+    ZFieldInTesla = cms.double(3.8),
 )
 
 process.sim = cms.Sequence(process.geantv)
