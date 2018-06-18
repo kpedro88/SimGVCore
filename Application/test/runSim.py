@@ -63,13 +63,13 @@ elif options.year==2023:
 if options.sim=="Geant4":
     # set a constant magnetic field
     process.load("MagneticField.Engine.uniformMagneticField_cfi")
-    process.UniformMagneticFieldESProducer = cms.double(3.8)
+    process.UniformMagneticFieldESProducer.ZFieldInTesla = cms.double(3.8)
 
     # load g4SimHits module and psim sequence
     process.load("Configuration.StandardSequences.SimIdeal_cff")
 
     # customize physics list to match GeantV
-    process.g4SimHits.Physics.type = cms.string("SimG4Core/Physics/CMSEmGeantV")
+    process.g4SimHits.Physics.type = cms.string("SimG4Core/Physics/DummyPhysics")
     process.g4SimHits.Physics.DummyEMPhysics = cms.bool(False)
 
 # modules for GeantV
@@ -105,9 +105,6 @@ process.RAWSIMoutput_step = cms.EndPath(process.RAWSIMoutput)
 process.schedule = cms.Schedule(process.simulation_step,process.endjob_step,process.RAWSIMoutput_step)
 from PhysicsTools.PatAlgos.tools.helpers import associatePatAlgosToolsTask
 associatePatAlgosToolsTask(process)
-# filter all path with the production filter sequence
-for path in process.paths:
-	getattr(process,path)._seq = process.generator * getattr(process,path)._seq 
 
 
 # Customisation from command line
