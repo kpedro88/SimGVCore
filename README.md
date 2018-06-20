@@ -30,7 +30,11 @@ git cms-merge-topic kpedro88:GVPhysicsList
 git clone git@github.com:kpedro88/SimGVCore.git
 cd SimGVCore
 git config core.sparseCheckout true
-echo "Application/test" > .git/info/sparse-checkout
+cat << 'EOF_SPARSE' > .git/info/sparse-checkout
+/Application/test
+/Application/python
+README.md
+EOF_SPARSE
 git read-tree -mu HEAD
 cd ..
 scram b -j 8
