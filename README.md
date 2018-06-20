@@ -51,6 +51,7 @@ SIM parameters (`runSim.py`):
 * `year`: 2018 or 2023 (for CMS geometry)
 * `threads`: number of threads
 * `streams`: number of streams (0 -> `streams` = `threads`)
+* `maxEventsIn`: number of input events (in case running over subset of generated events)
 
 GEN and SIM are run separately so Geant4 and GeantV can process the exact same gen events and report only the CPU time used in simulation.
 
