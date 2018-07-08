@@ -1,30 +1,20 @@
-# Auto generated configuration file
-# using: 
-# Revision: 1.19 
-# Source: /local/reps/CMSSW/CMSSW/Configuration/Applications/python/ConfigBuilder.py,v 
-# with command line options: SingleElectronPt10_pythia8_cfi --conditions auto:phase1_2018_realistic -n 10 --era Run2_2018 --eventcontent RAWSIM -s GEN --datatier GEN --beamspot Realistic25ns13TeVEarly2017Collision --geometry DB:Extended --no_exec --fileout file:step1.root
 import FWCore.ParameterSet.Config as cms
+from optGenSim import options
 
-from Configuration.StandardSequences.Eras import eras
-
-process = cms.Process('GEN',eras.Run2_2018)
+process = cms.Process('GEN')
 
 # import of standard configurations
 process.load('Configuration.StandardSequences.Services_cff')
 process.load('SimGeneral.HepPDTESSource.pythiapdt_cfi')
 process.load('FWCore.MessageService.MessageLogger_cfi')
 process.load('Configuration.EventContent.EventContent_cff')
-#process.load('SimGeneral.MixingModule.mixNoPU_cfi')
-#process.load('Configuration.StandardSequences.GeometryRecoDB_cff')
-process.load('Geometry.CMSCommonData.cmsExtendedGeometry2018NoSDXML_cfi')
-#process.load('Configuration.StandardSequences.MagneticField_cff')
 process.load('Configuration.StandardSequences.Generator_cff')
 process.load('Configuration.StandardSequences.VtxSmearedNoSmear_cff')
 process.load('GeneratorInterface.Core.genFilterSummary_cff')
 process.load('Configuration.StandardSequences.EndOfProcess_cff')
 
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(10)
+    input = cms.untracked.int32(options.maxEvents)
 )
 
 # Input source
@@ -54,11 +44,10 @@ process.RAWSIMoutput = cms.OutputModule("PoolOutputModule",
         filterName = cms.untracked.string('')
     ),
     eventAutoFlushCompressedSize = cms.untracked.int32(20971520),
-    fileName = cms.untracked.string('file:step1.root'),
+    fileName = cms.untracked.string('file:'+options._genname+'.root'),
     outputCommands = process.RAWSIMEventContent.outputCommands,
     splitLevel = cms.untracked.int32(0)
 )
-process.RAWSIMoutput.outputCommands.append("keep *_geantv_*_*")
 
 # Additional output definition
 
@@ -67,14 +56,14 @@ process.genstepfilter.triggerConditions=cms.vstring("generation_step")
 
 process.generator = cms.EDFilter("Pythia8PtGun",
     PGunParameters = cms.PSet(
-        AddAntiParticle = cms.bool(True),
-        MaxEta = cms.double(2.5),
-        MaxPhi = cms.double(3.14159265359),
-        MaxPt = cms.double(10.01),
-        MinEta = cms.double(-2.5),
+        AddAntiParticle = cms.bool(False),
+        MinEta = cms.double(-5.0),
+        MaxEta = cms.double(5.0),
         MinPhi = cms.double(-3.14159265359),
-        MinPt = cms.double(9.99),
-        ParticleID = cms.vint32(11)
+        MaxPhi = cms.double(3.14159265359),
+        MinPt = cms.double(options.pt),
+        MaxPt = cms.double(options.pt),
+        ParticleID = cms.vint32([options._pdgid]*int(options.mult))
     ),
     PythiaParameters = cms.PSet(
         parameterSets = cms.vstring()
@@ -84,39 +73,14 @@ process.generator = cms.EDFilter("Pythia8PtGun",
     psethack = cms.string('single electron pt 10')
 )
 
-# this converts the geometry into TGeoManager for GeantV
-process.TGeoMgrFromDdd =  cms.ESProducer("TGeoMgrFromDdd",
-    verbose = cms.untracked.bool(False),
-    level = cms.untracked.int32(14)
-)
-
-process.geantv = cms.EDProducer("GeantVProducer",
-    HepMCProductLabel = cms.InputTag("generatorSmeared"),
-# disabled in favor of CMS DB geometry via TGeoManager
-#    geometry = cms.string("/uscms_data/d3/pedrok/geant/files/cms2018.gdml"),
-    geometry = cms.string(""),
-    ZFieldInTesla = cms.double(3.8),
-)
-
-process.sim = cms.Sequence(process.geantv)
-
-process.MessageLogger.categories.append('GeantVProducer')
-process.MessageLogger.cerr.GeantVProducer = cms.untracked.PSet(
-    optionalPSet = cms.untracked.bool(True),
-    limit = cms.untracked.int32(10000000),
-)
-
 # Path and EndPath definitions
-#process.printes = cms.EDAnalyzer("PrintEventSetupContent")
-#process.generation_step = cms.Path(process.printes+process.pgen)
 process.generation_step = cms.Path(process.pgen)
-process.simulation_step = cms.Path(process.sim)
 process.genfiltersummary_step = cms.EndPath(process.genFilterSummary)
 process.endjob_step = cms.EndPath(process.endOfProcess)
 process.RAWSIMoutput_step = cms.EndPath(process.RAWSIMoutput)
 
 # Schedule definition
-process.schedule = cms.Schedule(process.generation_step,process.simulation_step,process.genfiltersummary_step,process.endjob_step,process.RAWSIMoutput_step)
+process.schedule = cms.Schedule(process.generation_step,process.genfiltersummary_step,process.endjob_step,process.RAWSIMoutput_step)
 from PhysicsTools.PatAlgos.tools.helpers import associatePatAlgosToolsTask
 associatePatAlgosToolsTask(process)
 # filter all path with the production filter sequence
@@ -130,6 +94,3 @@ for path in process.paths:
 from Configuration.StandardSequences.earlyDeleteSettings_cff import customiseEarlyDelete
 process = customiseEarlyDelete(process)
 # End adding early deletion
-
-process.options.numberOfThreads = cms.untracked.uint32(4)
-process.options.numberOfStreams = cms.untracked.uint32(0)

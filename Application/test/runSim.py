@@ -1,36 +1,26 @@
-# Auto generated configuration file
-# using: 
-# Revision: 1.19 
-# Source: /local/reps/CMSSW/CMSSW/Configuration/Applications/python/ConfigBuilder.py,v 
-# with command line options: SingleElectronPt10_pythia8_cfi --conditions auto:phase1_2018_realistic -n 10 --era Run2_2018 --eventcontent RAWSIM -s GEN --datatier GEN --beamspot Realistic25ns13TeVEarly2017Collision --geometry DB:Extended --no_exec --fileout file:step1.root
 import FWCore.ParameterSet.Config as cms
-from FWCore.ParameterSet.VarParsing import VarParsing
+from optGenSim import options
 
-options = VarParsing("analysis")
-options.register("nThreads",1,VarParsing.multiplicity.singleton,VarParsing.varType.int)
-options.parseArguments()
-
-from Configuration.StandardSequences.Eras import eras
-
-process = cms.Process('SIM',eras.Run2_2018)
+# eventually an era might be needed here
+process = cms.Process('SIM')
 
 # import of standard configurations
 process.load('Configuration.StandardSequences.Services_cff')
 process.load('SimGeneral.HepPDTESSource.pythiapdt_cfi')
 process.load('FWCore.MessageService.MessageLogger_cfi')
 process.load('Configuration.EventContent.EventContent_cff')
-#process.load('SimGeneral.MixingModule.mixNoPU_cfi')
 #process.load('Configuration.StandardSequences.GeometryRecoDB_cff')
+process.load('Geometry.CMSCommonData.cmsExtendedGeometry2018NoSDXML_cfi')
 #process.load('Configuration.StandardSequences.MagneticField_cff')
 process.load('Configuration.StandardSequences.EndOfProcess_cff')
 
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(-1)
+    input = cms.untracked.int32(options.maxEvents)
 )
 
 # Input source
 process.source = cms.Source("PoolSource",
-    fileNames = cms.untracked.vstring('file:step1.root')
+    fileNames = cms.untracked.vstring('file:'+options._genname+'.root')
 )
 
 process.options = cms.untracked.PSet(
@@ -54,31 +44,60 @@ process.RAWSIMoutput = cms.OutputModule("PoolOutputModule",
         filterName = cms.untracked.string('')
     ),
     eventAutoFlushCompressedSize = cms.untracked.int32(20971520),
-    fileName = cms.untracked.string('file:step2.root'),
+    fileName = cms.untracked.string('file:'+options._simname+'.root'),
     outputCommands = process.RAWSIMEventContent.outputCommands,
     splitLevel = cms.untracked.int32(0)
 )
-process.RAWSIMoutput.outputCommands.append("keep *_geantv_*_*")
 
 # Additional output definition
 
 # Other statements
-process.geantv = cms.EDProducer("GeantVProducer",
-    HepMCProductLabel = cms.InputTag("generatorSmeared"),
-    geometry = cms.string("/uscms_data/d3/pedrok/geant/files/cms2018.gdml"),
-    ZFieldInTesla = cms.double(3.8),
-)
 
-process.sim = cms.Sequence(process.geantv)
+# selection of geometry (w/out SDs) based on year
+if options.year==2018:
+    process.load("SimGVCore.Application.cmsExtendedGeometry2018NoSDXML_cfi")
+elif options.year==2023:
+    process.load("SimGVCore.Application.cmsExtendedGeometry2023D17NoSDXML_cfi")
 
-process.MessageLogger.categories.append('GeantVProducer')
-process.MessageLogger.cerr.GeantVProducer = cms.untracked.PSet(
-    optionalPSet = cms.untracked.bool(True),
-    limit = cms.untracked.int32(10000000),
-)
+# modules for Geant4
+if options.sim=="Geant4":
+    # set a constant magnetic field
+    process.load("MagneticField.Engine.uniformMagneticField_cfi")
+    process.UniformMagneticFieldESProducer.ZFieldInTesla = cms.double(3.8)
+
+    # load g4SimHits module and psim sequence
+    process.load("Configuration.StandardSequences.SimIdeal_cff")
+
+    # customize physics list to match GeantV
+    process.g4SimHits.Physics.type = cms.string("SimG4Core/Physics/DummyPhysics")
+    process.g4SimHits.Physics.DummyEMPhysics = cms.bool(False)
+
+# modules for GeantV
+elif options.sim=="GeantV":
+    # this converts the geometry into TGeoManager for GeantV
+    process.TGeoMgrFromDdd =  cms.ESProducer("TGeoMgrFromDdd",
+        verbose = cms.untracked.bool(False),
+        level = cms.untracked.int32(14)
+    )
+
+    process.geantv = cms.EDProducer("GeantVProducer",
+        HepMCProductLabel = cms.InputTag("generatorSmeared"),
+        geometry = cms.string(""),
+        ZFieldInTesla = cms.double(3.8),
+    )
+
+    process.RAWSIMoutput.outputCommands.append("keep *_geantv_*_*")
+
+    process.psim = cms.Sequence(process.geantv)
+
+    process.MessageLogger.categories.append('GeantVProducer')
+    process.MessageLogger.cerr.GeantVProducer = cms.untracked.PSet(
+        optionalPSet = cms.untracked.bool(True),
+        limit = cms.untracked.int32(10000000),
+    )
 
 # Path and EndPath definitions
-process.simulation_step = cms.Path(process.sim)
+process.simulation_step = cms.Path(process.psim)
 process.endjob_step = cms.EndPath(process.endOfProcess)
 process.RAWSIMoutput_step = cms.EndPath(process.RAWSIMoutput)
 
@@ -87,6 +106,7 @@ process.schedule = cms.Schedule(process.simulation_step,process.endjob_step,proc
 from PhysicsTools.PatAlgos.tools.helpers import associatePatAlgosToolsTask
 associatePatAlgosToolsTask(process)
 
+
 # Customisation from command line
 
 # Add early deletion of temporary data products to reduce peak memory need
@@ -94,8 +114,8 @@ from Configuration.StandardSequences.earlyDeleteSettings_cff import customiseEar
 process = customiseEarlyDelete(process)
 # End adding early deletion
 
-process.options.numberOfThreads = cms.untracked.uint32(options.nThreads)
-process.options.numberOfStreams = cms.untracked.uint32(0)
+process.options.numberOfThreads = cms.untracked.uint32(options.threads)
+process.options.numberOfStreams = cms.untracked.uint32(options.streams)
 
 from Validation.Performance.TimeMemoryInfo import customise
 process = customise(process)
