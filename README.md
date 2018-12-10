@@ -5,17 +5,17 @@ Test package for GeantV in CMSSW
 
 Instructions:
 ```
-cmsrel CMSSW_10_2_0_pre3
-cd CMSSW_10_2_0_pre3
+setenv SCRAM_ARCH slc6_amd64_gcc630
+cmsrel CMSSW_10_2_0
+cd CMSSW_10_2_0
 cmsenv
 mkdir work
 cd work
-git clone git@github.com:kpedro88/install-geant.git -b CMSSW_10_1_ROOT612_X
+git clone git@github.com:kpedro88/install-geant.git -b CMSSW_10_2_X
 ln -s install-geant/* .
-./setup.sh -f -j 8 -I all >& log_setup.log
 cd $CMSSW_BASE/src
 cmsenv
-git cms-merge-topic kpedro88:ImproveRootHandlers
+git cms-init
 git clone git@github.com:kpedro88/SimGVCore.git
 scram b -j 8
 ```
@@ -23,8 +23,8 @@ scram b -j 8
 
 Separate instructions for comparison tests w/ Geant4:
 ```
-cmsrel CMSSW_10_2_0_pre3
-cd CMSSW_10_2_0_pre3/src
+cmsrel CMSSW_10_2_0
+cd CMSSW_10_2_0/src
 cmsenv
 git cms-merge-topic kpedro88:GVPhysicsList
 git clone git@github.com:kpedro88/SimGVCore.git
