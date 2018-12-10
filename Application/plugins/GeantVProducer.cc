@@ -221,10 +221,10 @@ void GeantVProducer::initialize() const {
 
     // create the real physics main manager/interface object and set it in the RunManager
     edm::LogInfo("GeantVProducer") <<"*** RunManager: setting physics process...";
-    fRunMgr->SetPhysicsInterface(new geantphysics::PhysicsProcessHandler());
+    fRunMgr->SetPhysicsInterface(new geantphysics::PhysicsProcessHandler(*fConfig));
 
     // Create user defined physics list for the full CMS application
-    geantphysics::PhysicsListManager::Instance().RegisterPhysicsList(new cmsapp::CMSPhysicsList());
+    geantphysics::PhysicsListManager::Instance().RegisterPhysicsList(new cmsapp::CMSPhysicsList(*fConfig));
 
     // Detector construction
     auto detector_construction = new CMSDetectorConstruction(fRunMgr);
