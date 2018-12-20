@@ -327,7 +327,6 @@ std::unique_ptr<geant::EventSet> GeantVProducer::GenerateEventSet(const HepMC::G
         const auto& pos = (*i_part)->production_vertex()->position();
 
         // set track properties
-        track.SetPDG(pParticle->GetPDGCode());
         track.SetGVcode(pParticle->GetInternalCode());
         track.SetCharge(pParticle->GetPDGCharge());
         track.SetMass(pParticle->GetPDGMass());
