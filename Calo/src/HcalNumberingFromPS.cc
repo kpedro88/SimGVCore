@@ -1,6 +1,5 @@
 // to make hits in EB/EE/HC
-#include "SimG4CMS/Calo/interface/HcalNumberingFromPS.h"
-#include "DataFormats/Math/interface/GeantUnits.h"
+#include "SimGVCore/Calo/interface/HcalNumberingFromPS.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 
 #include <cmath>
@@ -8,8 +7,6 @@
 #include <iomanip>
 
 //#define EDM_ML_DEBUG
-using namespace geant_units;
-using namespace geant_units::operators;
 
 HcalNumberingFromPS::HcalNumberingFromPS(const edm::ParameterSet& conf) {
 
@@ -144,12 +141,12 @@ std::pair<int,int> HcalNumberingFromPS::getPhi(const int& det, const int& ieta,
   double fioff = ((det == static_cast<int>(HcalEndcap)) ? phioff_[1] : 
 		  phioff_[0]);
   double fibin = phibin_[ieta-1];
-  int    nphi  = int((2._pi+0.1*fibin)/fibin);
+  int    nphi  = int((2.*M_PI+0.1*fibin)/fibin);
   double hphi  = phi+fioff;
-  if (hphi < 0) hphi += (2._pi);
+  if (hphi < 0) hphi += (2.*M_PI);
   int    iphi  = int(hphi/fibin) + 1;
   if (iphi > nphi) iphi = 1;
-  const double fiveDegInRad = 5._deg;
+  const double fiveDegInRad = 5.*M_PI/180.;
   int units = int(fibin/fiveDegInRad+0.5);
   if (units < 1) units = 1;
   int iphi_skip = iphi;

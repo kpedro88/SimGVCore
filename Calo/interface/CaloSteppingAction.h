@@ -1,6 +1,5 @@
-#ifndef SimG4CMS_CaloSteppingAction_H
-#define SimG4CMS_CaloSteppingAction_H
-//#define HcalNumberingTest
+#ifndef SimGVCore_CaloSteppingAction_H
+#define SimGVCore_CaloSteppingAction_H
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/Framework/interface/Event.h"
@@ -21,17 +20,13 @@
 #include "SimDataFormats/CaloHit/interface/PCaloHitContainer.h"
 #include "SimDataFormats/SimHitMaker/interface/CaloSlaveSD.h"
 
-#include "SimG4CMS/Calo/interface/CaloGVHit.h"
 #include "SimG4CMS/Calo/interface/HcalNumberingScheme.h"
-#include "SimG4CMS/Calo/interface/HcalNumberingFromPS.h"
+#include "SimGVCore/Calo/interface/CaloGVHit.h"
+#include "SimGVCore/Calo/interface/HcalNumberingFromPS.h"
 
 #include "Geometry/EcalCommonData/interface/EcalBarrelNumberingScheme.h"
 #include "Geometry/EcalCommonData/interface/EcalBaseNumber.h"
 #include "Geometry/EcalCommonData/interface/EcalEndcapNumberingScheme.h"
-#ifdef HcalNumberingTest
-#include "Geometry/HcalCommonData/interface/HcalNumberingFromDDD.h"
-#include "Geometry/HcalCommonData/interface/HcalDDDSimConstants.h"
-#endif
 
 #include "G4LogicalVolume.hh"
 #include "G4Region.hh"
@@ -84,9 +79,6 @@ private:
   std::unique_ptr<EcalBarrelNumberingScheme> ebNumberingScheme_;
   std::unique_ptr<EcalEndcapNumberingScheme> eeNumberingScheme_;
   std::unique_ptr<HcalNumberingFromPS>       hcNumberingPS_;
-#ifdef HcalNumberingTest
-  std::unique_ptr<HcalNumberingFromDDD>      hcNumbering_;
-#endif
   std::unique_ptr<HcalNumberingScheme>       hcNumberingScheme_;
   std::unique_ptr<CaloSlaveSD>               slave_[nSD_];
 

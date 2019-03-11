@@ -1,0 +1,21 @@
+<use name="DataFormats/Common"/>
+<use name="DataFormats/HcalDetId"/>
+<use name="DataFormats/Math"/>
+<use name="FWCore/Framework"/>
+<use name="FWCore/MessageLogger"/>
+<use name="FWCore/ParameterSet"/>
+<use name="FWCore/PluginManager"/>
+<use name="FWCore/Utilities"/>
+<use name="Geometry/CaloGeometry"/>
+<use name="Geometry/EcalCommonData"/>
+<use name="Geometry/HcalCommonData"/>
+<use name="Geometry/Records"/>
+<use name="SimDataFormats/CaloHit"/>
+<use name="SimDataFormats/SimHitMaker"/>
+<use name="SimG4CMS/Calo"/>
+<use name="SimG4Core/Notification"/>
+<use name="SimG4Core/Watcher"/>
+<use name="geant4core"/>
+<export>
+  <lib   name="1"/>
+</export>

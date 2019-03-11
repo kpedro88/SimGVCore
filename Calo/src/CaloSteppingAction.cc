@@ -1,13 +1,9 @@
 // to make hits in EB/EE/HC
-#include "SimG4CMS/Calo/interface/CaloSteppingAction.h"
+#include "SimGVCore/Calo/interface/CaloSteppingAction.h"
 #include "SimG4Core/Notification/interface/G4TrackToParticleID.h"
 
 #include "DataFormats/HcalDetId/interface/HcalDetId.h"
 #include "SimDataFormats/CaloHit/interface/PCaloHit.h"
-#ifdef HcalNumberingTest
-#include "Geometry/HcalCommonData/interface/HcalDDDSimConstants.h"
-#include "Geometry/Records/interface/HcalSimNumberingRecord.h"
-#endif
 
 #include "FWCore/Framework/interface/EventSetup.h"
 #include "FWCore/Framework/interface/ESHandle.h"
@@ -73,9 +69,6 @@ CaloSteppingAction::CaloSteppingAction(const edm::ParameterSet &p) :
   eeNumberingScheme_ = std::make_unique<EcalEndcapNumberingScheme>();
   hcNumberingPS_     = std::make_unique<HcalNumberingFromPS>(iC);
   hcNumberingScheme_ = std::make_unique<HcalNumberingScheme>();
-#ifdef HcalNumberingTest
-  hcNumbering_.reset(nullptr);
-#endif
   for (int k=0; k<CaloSteppingAction::nSD_; ++k) {
     slave_[k] = std::make_unique<CaloSlaveSD>(nameHitC_[k]);
     produces<edm::PCaloHitContainer>(nameHitC_[k]);
@@ -107,16 +100,6 @@ void CaloSteppingAction::fillHits(edm::PCaloHitContainer& cc, int type) {
 
 void CaloSteppingAction::update(const BeginOfJob * job) {
   edm::LogVerbatim("Step") << "CaloSteppingAction:: Enter BeginOfJob";
-
-#ifdef HcalNumberingTest
-  // Numbering From DDD
-  edm::ESHandle<HcalDDDSimConstants>    hdc;
-  (*job)()->get<HcalSimNumberingRecord>().get(hdc);
-  const HcalDDDSimConstants* hcons_ = hdc.product();
-  edm::LogVerbatim("Step") << "CaloSteppingAction:: Initialise "
-			   << "HcalNumberingFromDDD";
-  hcNumbering_ = std::make_unique<HcalNumberingFromDDD>(hcons_);
-#endif
 }
 
 //==================================================================== per RUN
@@ -281,15 +264,6 @@ uint32_t CaloSteppingAction::getDetIDHC(int det, int lay, int depth,
 
   HcalNumberingFromDDD::HcalID tmp = hcNumberingPS_.get()->unitID(det, lay, 
 								  depth, pos);
-#ifdef HcalNumberingTest
-  auto id0 = hcNumberingScheme_.get()->getUnitID(tmp);
-  HcalNumberingFromDDD::HcalID tmpO= hcNumbering_.get()->unitID(det, pos, 
-								depth, lay);
-  auto idO = hcNumberingScheme_.get()->getUnitID(tmpO);
-  std::string error = (id0 == idO) ? " ** OK **" : " ** ERROR **";
-  edm::LogVerbatim("Step") << "Det ID " << HcalDetId(id0) << " Original " 
-			   << HcalDetId(idO) << error;
-#endif
   return (hcNumberingScheme_.get()->getUnitID(tmp));
 }
 

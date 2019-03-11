@@ -1,10 +1,11 @@
-#ifndef SimG4CMS_HcalNumberingFromPS_h
-#define SimG4CMS_HcalNumberingFromPS_h
+#ifndef SimGVCore_HcalNumberingFromPS_h
+#define SimGVCore_HcalNumberingFromPS_h
 
 #include "Geometry/CaloGeometry/interface/CaloNumberingScheme.h"
 #include "Geometry/HcalCommonData/interface/HcalNumberingFromDDD.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
-#
+#include "DataFormats/Math/interface/Vector3D.h"
+
 #include <cstdint>
 #include <vector>
 
