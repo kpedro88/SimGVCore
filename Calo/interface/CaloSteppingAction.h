@@ -10,10 +10,6 @@
 #include "FWCore/PluginManager/interface/ModuleDef.h"
 
 #include "SimG4Core/Notification/interface/Observer.h"
-#include "SimG4Core/Notification/interface/BeginOfJob.h"
-#include "SimG4Core/Notification/interface/BeginOfRun.h"
-#include "SimG4Core/Notification/interface/BeginOfEvent.h"
-#include "SimG4Core/Notification/interface/EndOfEvent.h"
 #include "SimG4Core/Watcher/interface/SimProducer.h"
 #include "SimG4Core/Watcher/interface/SimWatcherFactory.h"
 
@@ -28,26 +24,19 @@
 #include "Geometry/EcalCommonData/interface/EcalBaseNumber.h"
 #include "Geometry/EcalCommonData/interface/EcalEndcapNumberingScheme.h"
 
-#include "G4LogicalVolume.hh"
-#include "G4Region.hh"
-#include "G4Step.hh"
-#include "G4UserSteppingAction.hh"
-#include "G4VPhysicalVolume.hh"
-#include "G4VTouchable.hh"
-#include "G4Track.hh"
-
 #include <algorithm>
 #include <iostream>
 #include <memory>
 #include <string>
 #include <vector>
 
+template <class Traits>
 class CaloSteppingAction : public SimProducer,
-                           public Observer<const BeginOfJob *>, 
-                           public Observer<const BeginOfRun *>, 
-                           public Observer<const BeginOfEvent *>, 
-                           public Observer<const EndOfEvent *>, 
-                           public Observer<const G4Step *> {
+                           public Observer<const Traits::BeginJob *>
+                           public Observer<const Traits::BeginRun *>, 
+                           public Observer<const Traits::BeginEvent *>, 
+                           public Observer<const Traits::EndEvent *>, 
+                           public Observer<const Traits::Step *> {
 
 public:
   CaloSteppingAction(const edm::ParameterSet &p);
@@ -58,13 +47,20 @@ public:
 private:
   void fillHits(edm::PCaloHitContainer& cc, int type);
   // observer classes
-  void update(const BeginOfJob * job)   override;
-  void update(const BeginOfRun * run)   override;
-  void update(const BeginOfEvent * evt) override;
-  void update(const G4Step * step)      override;
-  void update(const EndOfEvent * evt)   override;
+  void update(const Traits::BeginJob * job)   override { update(BeginJobWrapper(job)); }
+  void update(const Traits::BeginRun * run)   override { update(BeginRunWrapper(run)); }
+  void update(const Traits::BeginEvent * evt) override { update(BeginEventWrapper(evt)); }
+  void update(const Traits::Step * step)      override { update(StepWrapper(step)); }
+  void update(const Traits::EndEvent * evt)   override { update(EndEventWrapper(evt)); }
 
-  void NaNTrap(const G4Step*) const;
+  // subordinate functions with unified interfaces
+  void update(const Traits::BeginJobWrapper& job);
+  void update(const Traits::BeginRunWrapper& run);
+  void update(const Traits::BeginEventWrapper& evt);
+  void update(const Traits::StepWrapper& step);
+  void update(const Traits::EndEventWrapper& evt);
+
+  void NaNTrap(const Traits::StepWrapper&) const;
   uint32_t getDetIDHC(int det, int lay, int depth,
 		      const math::XYZVectorD& pos) const;
   void fillHit(uint32_t id, double dE, double time, int primID, 
@@ -84,8 +80,8 @@ private:
 
   std::vector<std::string>              nameEBSD_, nameEESD_, nameHCSD_;
   std::vector<std::string>              nameHitC_;
-  std::vector<const G4LogicalVolume*>   volEBSD_, volEESD_, volHCSD_;
-  std::map<const G4LogicalVolume*,double> xtalMap_;
+  std::vector<const Traits::Volume>   volEBSD_, volEESD_, volHCSD_;
+  std::map<const Traits::Volume,double> xtalMap_;
   int                                   count_, eventID_;
   double                                slopeLY_, birkC1EC_, birkSlopeEC_;
   double                                birkCutEC_, birkC1HC_, birkC2HC_;

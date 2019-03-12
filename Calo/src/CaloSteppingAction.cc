@@ -26,7 +26,8 @@
 
 //#define EDM_ML_DEBUG
 
-CaloSteppingAction::CaloSteppingAction(const edm::ParameterSet &p) : 
+template <class Traits>
+CaloSteppingAction<Traits>::CaloSteppingAction(const edm::ParameterSet &p) : 
   count_(0) {
 
   edm::ParameterSet iC = p.getParameter<edm::ParameterSet>("CaloSteppingAction");
@@ -43,25 +44,25 @@ CaloSteppingAction::CaloSteppingAction(const edm::ParameterSet &p) :
   birkC3HC_       = iC.getParameter<double>("BirkC3HC");
 
   edm::LogVerbatim("Step") << "CaloSteppingAction:: " << nameEBSD_.size() 
-			   << " names for EB SD's";
+                           << " names for EB SD's";
   for (unsigned int k=0; k<nameEBSD_.size(); ++k)
     edm::LogVerbatim("Step") << "[" << k << "] " << nameEBSD_[k];
   edm::LogVerbatim("Step") << "CaloSteppingAction:: " << nameEESD_.size() 
-			   << " names for EE SD's";
+                           << " names for EE SD's";
   for (unsigned int k=0; k<nameEESD_.size(); ++k)
     edm::LogVerbatim("Step") << "[" << k << "] " << nameEESD_[k];
   edm::LogVerbatim("Step") << "CaloSteppingAction:: " << nameHCSD_.size() 
-			   << " names for HC SD's";
+                           << " names for HC SD's";
   for (unsigned int k=0; k<nameHCSD_.size(); ++k)
     edm::LogVerbatim("Step") << "[" << k << "] " << nameHCSD_[k];
   edm::LogVerbatim("Step") << "CaloSteppingAction::Constants for ECAL: slope "
-			   << slopeLY_ << " Birk constants " << birkC1EC_ 
-			   << ":" << birkSlopeEC_ << ":" << birkCutEC_;
+                           << slopeLY_ << " Birk constants " << birkC1EC_ 
+                           << ":" << birkSlopeEC_ << ":" << birkCutEC_;
   edm::LogVerbatim("Step") << "CaloSteppingAction::Constants for HCAL: Birk "
-			   << "constants " << birkC1HC_ << ":" << birkC2HC_
-			   << ":" << birkC3HC_;
+                           << "constants " << birkC1HC_ << ":" << birkC2HC_
+                           << ":" << birkC3HC_;
   edm::LogVerbatim("Step") << "CaloSteppingAction:: " << nameHitC_.size() 
-			   << " hit collections";
+                           << " hit collections";
   for (unsigned int k=0; k<nameHitC_.size(); ++k)
     edm::LogVerbatim("Step") << "[" << k << "] " << nameHitC_[k];
 
@@ -74,13 +75,15 @@ CaloSteppingAction::CaloSteppingAction(const edm::ParameterSet &p) :
     produces<edm::PCaloHitContainer>(nameHitC_[k]);
   }
 } 
-   
-CaloSteppingAction::~CaloSteppingAction() {
+
+template <class Traits>
+CaloSteppingAction<Traits>::~CaloSteppingAction() {
   edm::LogVerbatim("Step") << "CaloSteppingAction: -------->  Total number of "
-			   << "selected entries : " << count_;
+                           << "selected entries : " << count_;
 }
 
-void CaloSteppingAction::produce(edm::Event& e, const edm::EventSetup&) {
+template <class Traits>
+void CaloSteppingAction<Traits>::produce(edm::Event& e, const edm::EventSetup&) {
 
   for (int k=0; k<CaloSteppingAction::nSD_; ++k) {
     saveHits(k);
@@ -90,10 +93,11 @@ void CaloSteppingAction::produce(edm::Event& e, const edm::EventSetup&) {
   }
 }
 
-void CaloSteppingAction::fillHits(edm::PCaloHitContainer& cc, int type) {
+template <class Traits>
+void CaloSteppingAction<Traits>::fillHits(edm::PCaloHitContainer& cc, int type) {
   edm::LogVerbatim("Step") << "CaloSteppingAction::fillHits for type "
-			   << type << " with "
-			   << slave_[type].get()->hits().size() << " hits";
+                           << type << " with "
+                           << slave_[type].get()->hits().size() << " hits";
   cc = slave_[type].get()->hits();
   slave_[type].get()->Clean();
 }
@@ -103,46 +107,41 @@ void CaloSteppingAction::update(const BeginOfJob * job) {
 }
 
 //==================================================================== per RUN
-void CaloSteppingAction::update(const BeginOfRun * run) {
+template <class Traits>
+void CaloSteppingAction::update(const Traits::BeginRunWrapper& run) {
 
-  int irun = (*run)()->GetRunID();
+  int irun = run.GetRunID();
   edm::LogVerbatim("Step") << "CaloSteppingAction:: Begin of Run = " << irun;
 
-  const G4LogicalVolumeStore * lvs = G4LogicalVolumeStore::GetInstance();
-  if (lvs) {
-    std::map<const std::string, const G4LogicalVolume *> nameMap;
-    std::map<const std::string, const G4LogicalVolume *>::const_iterator itr;
-    for (auto lvi = lvs->begin(), lve = lvs->end(); lvi != lve; ++lvi)
-      nameMap.emplace((*lvi)->GetName(), *lvi);
+  const auto& nameMap = Traits::VolumeWrapper::getVolumes();
     for (auto const& name : nameEBSD_) {
-      for (itr = nameMap.begin(); itr != nameMap.end(); ++itr) {
-	const std::string &lvname = itr->first;
-	if (lvname.find(name) != std::string::npos) {
-	  volEBSD_.emplace_back(itr->second);
-	  int type =  (lvname.find("refl") == std::string::npos) ? -1 : 1;
-	  G4Trap* solid = static_cast<G4Trap*>(itr->second->GetSolid());
-	  double  dz    = 2*solid->GetZHalfLength();
-	  xtalMap_.insert(std::pair<const G4LogicalVolume*,double>(itr->second,dz*type));
-	}
+      for (const auto& itr : nameMap) {
+        const std::string &lvname = itr.first;
+        if (lvname.find(name) != std::string::npos) {
+          volEBSD_.emplace_back(itr.second);
+          int type =  (lvname.find("refl") == std::string::npos) ? -1 : 1;
+          double dz = Traits::VolumeWrapper(itr.second).dz();
+          xtalMap_.emplace(itr.second,dz*type);
+        }
       }
     }
     for (auto const& name : nameEESD_) {
-      for (itr = nameMap.begin(); itr != nameMap.end(); ++itr) {
-	const std::string &lvname = itr->first;
-	if (lvname.find(name) != std::string::npos)  {
-	  volEESD_.emplace_back(itr->second);
-	  int type =  (lvname.find("refl") == std::string::npos) ? 1 : -1;
-	  G4Trap* solid = static_cast<G4Trap*>(itr->second->GetSolid());
-	  double  dz    = 2*solid->GetZHalfLength();
-	  xtalMap_.insert(std::pair<const G4LogicalVolume*,double>(itr->second,dz*type));
-	}
+      for (const auto& itr : nameMap) {
+        const std::string &lvname = itr.first;
+        if (lvname.find(name) != std::string::npos)  {
+          volEESD_.emplace_back(itr.second);
+          int type =  (lvname.find("refl") == std::string::npos) ? 1 : -1;
+          G4Trap* solid = static_cast<G4Trap*>(itr->second->GetSolid());
+          double dz = Traits::VolumeWrapper(itr.second).dz();
+          xtalMap_.emplace(itr.second,dz*type);
+        }
       }
     }
     for (auto const& name : nameHCSD_) {
-      for (itr = nameMap.begin(); itr != nameMap.end(); ++itr) {
-	const std::string &lvname = itr->first;
-	if (lvname.find(name) != std::string::npos) 
-	  volHCSD_.emplace_back(itr->second);
+      for (const auto& itr : nameMap) {
+        const std::string &lvname = itr.first;
+        if (lvname.find(name) != std::string::npos) 
+          volHCSD_.emplace_back(itr.second);
       }
     }
   }
@@ -160,91 +159,85 @@ void CaloSteppingAction::update(const BeginOfRun * run) {
 }
 
 //=================================================================== per EVENT
-void CaloSteppingAction::update(const BeginOfEvent * evt) {
+template <class Traits>
+void CaloSteppingAction<Traits>::update(const Traits::BeginEventWrapper& evt) {
  
-  eventID_ = (*evt)()->GetEventID();
+  eventID_ = evt.GetEventID();
   edm::LogVerbatim("Step") <<"CaloSteppingAction: Begin of event = " 
-			   << eventID_;
-  for (int k=0; k<CaloSteppingAction::nSD_; ++k) {
+                           << eventID_;
+  for (int k=0; k<CaloSteppingAction<Traits>::nSD_; ++k) {
     hitMap_[k].erase (hitMap_[k].begin(), hitMap_[k].end());
     slave_[k].get()->Initialize();
   }
 }
 
 //=================================================================== each STEP
-void CaloSteppingAction::update(const G4Step * aStep) {
+template <class Traits>
+void CaloSteppingAction<Traits>::update(const Traits::StepWrapper& aStep) {
 
   //  edm::LogVerbatim("Step") <<"CaloSteppingAction: At each Step";
   NaNTrap(aStep);
-  auto lv = aStep->GetPreStepPoint()->GetPhysicalVolume()->GetLogicalVolume();
-  bool hc = (std::find(volHCSD_.begin(),volHCSD_.end(),lv) != volHCSD_.end());
+  auto lv = aStep.GetVolume();
+  bool hc = (std::find(volHCSD_.begin(),volHCSD_.end(),lv)!=volHCSD_.end());
   bool eb = (std::find(volEBSD_.begin(),volEBSD_.end(),lv)!=volEBSD_.end());
   bool ee = (std::find(volEESD_.begin(),volEESD_.end(),lv)!=volEESD_.end());
   if  (hc || eb || ee) {
-    double dEStep = aStep->GetTotalEnergyDeposit();
-    auto const theTrack = aStep->GetTrack();
-    double     time     = theTrack->GetGlobalTime()/nanosecond;
-    int        primID   = theTrack->GetTrackID();
-    bool       em       = G4TrackToParticleID::isGammaElectronPositron(theTrack);
-    auto const touch    = aStep->GetPreStepPoint()->GetTouchable();
-    auto const& hitPoint= aStep->GetPreStepPoint()->GetPosition();
+    double dEStep = aStep.getEnergyDeposit();
+    double     time     = aStep.getTime()/nanosecond;
+    int        primID   = aStep.getTrackID();
+    bool       em       = aStep.getEM();
     if (hc) {
-      int depth = (touch->GetReplicaNumber(0))%10 + 1;
-      int lay   = (touch->GetReplicaNumber(0)/10)%100 + 1;
-      int det   = (touch->GetReplicaNumber(1))/1000;
-      auto unitID   = getDetIDHC(det, lay, depth,
-				 math::XYZVectorD(hitPoint.x(),hitPoint.y(),
-						  hitPoint.z()));
-      if (unitID > 0 && dEStep > 0.0) {
-	dEStep *= getBirkHC(dEStep, aStep->GetStepLength(), 
-			    aStep->GetPreStepPoint()->GetCharge(),
-			    aStep->GetPreStepPoint()->GetMaterial()->GetDensity());
-	fillHit(unitID, dEStep, time, primID, 0, em, 2);
+      int depth = aStep.getDepth();
+      int lay   = aStep.getLayer();
+      int det   = aStep.getDet();
+      auto unitID = getDetIDHC(det, lay, depth, math::XYZVectorD(aStep.getX(),aStep.getY(),aStep.getZ()));
+      if(unitID > 0 && dEStep > 0.0) {
+        dEStep *= getBirkHC(dEStep, aStep.getStepLength(), aStep.getCharge(), aStep.getDensity());
+        fillHit(unitID, dEStep, time, primID, 0, em, 2);
       }
+    }
     } else {
       EcalBaseNumber theBaseNumber;
-      int  size = touch->GetHistoryDepth()+1;
+      int  size = aStep.getSize();
       if (theBaseNumber.getCapacity() < size ) theBaseNumber.setSize(size);
       //Get name and copy numbers
       if (size > 1) {
-	for (int ii = 0; ii < size ; ii++) {
-	  theBaseNumber.addLevel(touch->GetVolume(ii)->GetName(),
-				 touch->GetReplicaNumber(ii));
-	}
+        for (int ii = 0; ii < size ; ii++) {
+          theBaseNumber.addLevel(aStep.getVolumeName(ii), aStep.getVolumeNumber(ii));
+        }
       }
       auto unitID = (eb ? (ebNumberingScheme_->getUnitID(theBaseNumber)) :
-		     (eeNumberingScheme_->getUnitID(theBaseNumber)));
+                     (eeNumberingScheme_->getUnitID(theBaseNumber)));
       if (unitID > 0 && dEStep > 0.0) {
-	auto local = touch->GetHistory()->GetTopTransform().TransformPoint(hitPoint);
-	auto ite   = xtalMap_.find(lv);
-	double crystalLength = ((ite == xtalMap_.end()) ? 230.0 : 
-				std::abs(ite->second));
-	double crystalDepth = ((ite == xtalMap_.end()) ? 0.0 :
-			       (std::abs(0.5*(ite->second)+local.z())));
-	double radl   = aStep->GetPreStepPoint()->GetMaterial()->GetRadlen();
-	bool   flag   = ((ite == xtalMap_.end()) ? true : (((ite->second) >= 0)
-							   ? true : false));
-	auto   depth  = getDepth(flag, crystalDepth, radl);
-	dEStep        *= (getBirkL3(dEStep,aStep->GetStepLength(),
-				    aStep->GetPreStepPoint()->GetCharge(),
-				    aStep->GetPreStepPoint()->GetMaterial()->GetDensity()) * 
-			  curve_LY(crystalLength,crystalDepth));
-	fillHit(unitID, dEStep, time, primID, depth, em, (eb ? 0 : 1));
+        double dz = aStep.getDz();
+        auto ite   = xtalMap_.find(lv);
+        double crystalLength = ((ite == xtalMap_.end()) ? 230.0 : 
+                                std::abs(ite->second));
+        double crystalDepth = ((ite == xtalMap_.end()) ? 0.0 :
+                               (std::abs(0.5*(ite->second)+dz)));
+        double radl   = aStep.getRadlen();
+        bool   flag   = ((ite == xtalMap_.end()) ? true : (((ite->second) >= 0)
+                                                           ? true : false));
+        auto   depth  = getDepth(flag, crystalDepth, radl);
+        dEStep        *= (getBirkL3(dEStep,aStep.getStepLength(), aStep.getCharge(), aStep.getDensity()) * 
+                          curve_LY(crystalLength,crystalDepth));
+        fillHit(unitID, dEStep, time, primID, depth, em, (eb ? 0 : 1));
       }
     }
   }
 }
 
 //================================================================ End of EVENT
-void CaloSteppingAction::update(const EndOfEvent * evt) {
-
+template <class Traits>
+void CaloSteppingAction<Traits>::update(const EndEventWrapper& evt) {
   ++count_;
   // Fill event input 
   edm::LogVerbatim("Step") << "CaloSteppingAction: EndOfEvent " 
-			   << (*evt)()->GetEventID();
+                           << evt.getEventID();
 }
 
-void CaloSteppingAction::NaNTrap(const G4Step* aStep) const {
+template <class Traits>
+void CaloSteppingAction<Traits>::NaNTrap(const Traits::StepWrapper& aStep) const {
 
   auto currentPos = aStep->GetTrack()->GetPosition();
   double xyz = currentPos.x() + currentPos.y() + currentPos.z();
@@ -260,16 +253,17 @@ void CaloSteppingAction::NaNTrap(const G4Step* aStep) const {
 }
 
 uint32_t CaloSteppingAction::getDetIDHC(int det, int lay, int depth,
-					const math::XYZVectorD& pos) const {
+                                        const math::XYZVectorD& pos) const {
 
   HcalNumberingFromDDD::HcalID tmp = hcNumberingPS_.get()->unitID(det, lay, 
-								  depth, pos);
+                                                                  depth, pos);
   return (hcNumberingScheme_.get()->getUnitID(tmp));
 }
 
-void CaloSteppingAction::fillHit(uint32_t id, double dE, double time,
-				 int primID, uint16_t depth, double em,
-				 int flag) {
+template <class Traits>
+void CaloSteppingAction<Traits>::fillHit(uint32_t id, double dE, double time,
+                                 int primID, uint16_t depth, double em,
+                                 int flag) {
   CaloHitID  currentID(id, time, primID, depth);
   double edepEM  = (em ? dE : 0);
   double edepHAD = (em ? 0 : dE);
@@ -286,21 +280,22 @@ void CaloSteppingAction::fillHit(uint32_t id, double dE, double time,
   }
 }
 
-uint16_t CaloSteppingAction::getDepth(bool flag, double crystalDepth,
-				      double radl) const {
+template <class Traits>
+uint16_t CaloSteppingAction<Traits>::getDepth(bool flag, double crystalDepth,
+                                      double radl) const {
   uint16_t depth1 = (flag ? 0 : PCaloHit::kEcalDepthRefz);
   uint16_t depth2 = (uint16_t)floor(crystalDepth/radl);
   uint16_t depth  = (((depth2&PCaloHit::kEcalDepthMask) << PCaloHit::kEcalDepthOffset) | depth1);
 #ifdef EDM_ML_DEBUG
   edm::LogVerbatim("Step") << "CaloSteppingAction::getDepth radl " << radl
-			   << ":" << crystalDepth << " depth " << depth;
+                           << ":" << crystalDepth << " depth " << depth;
 #endif
   return depth;
 }
 
-double CaloSteppingAction::curve_LY(double crystalLength, 
-				    double crystalDepth) const {
-
+template <class Traits>
+double CaloSteppingAction<Traits>::curve_LY(double crystalLength, 
+                                    double crystalDepth) const {
   double weight = 1.;
   double dapd = crystalLength - crystalDepth;
   if (dapd >= -0.1 || dapd <= crystalLength+0.1) {
@@ -308,21 +303,21 @@ double CaloSteppingAction::curve_LY(double crystalLength,
       weight = 1.0 + slopeLY_ - dapd * 0.01 * slopeLY_;
 #ifdef EDM_ML_DEBUG
     edm::LogVerbatim("Step") << "CaloSteppingAction::curve_LY " << crystalDepth
-			     << ":" << crystalLength << ":" << dapd << ":" 
-			     << weight;
+                             << ":" << crystalLength << ":" << dapd << ":" 
+                             << weight;
 #endif
   } else {
     edm::LogWarning("Step") << "CaloSteppingAction: light coll curve : wrong "
-			    << "distance to APD " << dapd << " crlength = " 
-			    << crystalLength <<" crystal Depth = " 
-			    << crystalDepth << " weight = " << weight;
+                            << "distance to APD " << dapd << " crlength = " 
+                            << crystalLength <<" crystal Depth = " 
+                            << crystalDepth << " weight = " << weight;
   }
   return weight;
 }
 
-double CaloSteppingAction::getBirkL3(double dEStep, double step, 
-				     double charge, double density) const {
-
+template <class Traits>
+double CaloSteppingAction<Traits>::getBirkL3(double dEStep, double step, 
+                                     double charge, double density) const {
   double weight = 1.;
   if (charge != 0. && step > 0.) {
     double dedx    = dEStep/step;
@@ -334,16 +329,17 @@ double CaloSteppingAction::getBirkL3(double dEStep, double step,
     }
 #ifdef EDM_ML_DEBUG
     edm::LogVerbatim("Step") << "CaloSteppingAction::getBirkL3 Charge "
-			     << charge << " dE/dx " << dedx
-			     << " Birk Const " << rkb << " Weight = " << weight
-			     << " dE " << dEStep << " step " << step;
+                             << charge << " dE/dx " << dedx
+                             << " Birk Const " << rkb << " Weight = " << weight
+                             << " dE " << dEStep << " step " << step;
 #endif
   }
   return weight;
 }
 
-double CaloSteppingAction::getBirkHC(double dEStep, double step, double charge,
-				     double density) const {
+template <class Traits>
+double CaloSteppingAction<Traits>::getBirkHC(double dEStep, double step, double charge,
+                                     double density) const {
 
   double weight = 1.;
   if (charge != 0. && step > 0.) {
@@ -354,27 +350,28 @@ double CaloSteppingAction::getBirkHC(double dEStep, double step, double charge,
     weight = 1./(1.+rkb*dedx+c*dedx*dedx);
 #ifdef EDM_ML_DEBUG
     edm::LogVerbatim("Step") << "CaloSteppingAction::getBirkHC Charge " 
-			     << charge << " dE/dx " << dedx 
-			     << " Birk Const " << rkb << ", " << c 
-			     << " Weight = " << weight << " dE "
-			     << dEStep;
+                             << charge << " dE/dx " << dedx 
+                             << " Birk Const " << rkb << ", " << c 
+                             << " Weight = " << weight << " dE "
+                             << dEStep;
 #endif
   }
   return weight;
 }
 
-void CaloSteppingAction::saveHits(int type) {
+template <class Traits>
+void CaloSteppingAction<Traits>::saveHits(int type) {
 
   edm::LogVerbatim("Step") << "CaloSteppingAction:: saveHits for type " 
-			   << type << " with " << hitMap_[type].size()
-			   << " hits";
+                           << type << " with " << hitMap_[type].size()
+                           << " hits";
   slave_[type].get()->ReserveMemory(hitMap_[type].size());
   for (auto const& hit : hitMap_[type]) {
     slave_[type].get()->processHits(hit.second.getUnitID(),
-				    hit.second.getEM()/GeV, 
-				    hit.second.getHadr()/GeV,
-				    hit.second.getTimeSlice(),
-				    hit.second.getTrackID(),
-				    hit.second.getDepth());
+                                    hit.second.getEM()/GeV, 
+                                    hit.second.getHadr()/GeV,
+                                    hit.second.getTimeSlice(),
+                                    hit.second.getTrackID(),
+                                    hit.second.getDepth());
   }
 }
