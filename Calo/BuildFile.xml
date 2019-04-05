@@ -16,6 +16,9 @@
 <use name="SimG4Core/Notification"/>
 <use name="SimG4Core/Watcher"/>
 <use name="geant4core"/>
+<use name="geantv"/>
+<use name="vecgeomv"/>
+<use name="veccore"/>
 <export>
   <lib   name="1"/>
 </export>

@@ -102,25 +102,26 @@ void CaloSteppingAction<Traits>::fillHits(edm::PCaloHitContainer& cc, int type) 
   slave_[type].get()->Clean();
 }
 
-void CaloSteppingAction::update(const BeginOfJob * job) {
+template <class Traits>
+void CaloSteppingAction<Traits>::update(const BeginOfJob * job) {
   edm::LogVerbatim("Step") << "CaloSteppingAction:: Enter BeginOfJob";
 }
 
 //==================================================================== per RUN
 template <class Traits>
-void CaloSteppingAction::update(const Traits::BeginRunWrapper& run) {
+void CaloSteppingAction<Traits>::update(const BeginRunWrapper& run) {
 
-  int irun = run.GetRunID();
+  int irun = run.getRunID();
   edm::LogVerbatim("Step") << "CaloSteppingAction:: Begin of Run = " << irun;
 
-  const auto& nameMap = Traits::VolumeWrapper::getVolumes();
+  const auto& nameMap = VolumeWrapper::getVolumes();
     for (auto const& name : nameEBSD_) {
       for (const auto& itr : nameMap) {
         const std::string &lvname = itr.first;
         if (lvname.find(name) != std::string::npos) {
           volEBSD_.emplace_back(itr.second);
           int type =  (lvname.find("refl") == std::string::npos) ? -1 : 1;
-          double dz = Traits::VolumeWrapper(itr.second).dz();
+          double dz = VolumeWrapper(itr.second).dz();
           xtalMap_.emplace(itr.second,dz*type);
         }
       }
@@ -131,8 +132,7 @@ void CaloSteppingAction::update(const Traits::BeginRunWrapper& run) {
         if (lvname.find(name) != std::string::npos)  {
           volEESD_.emplace_back(itr.second);
           int type =  (lvname.find("refl") == std::string::npos) ? 1 : -1;
-          G4Trap* solid = static_cast<G4Trap*>(itr->second->GetSolid());
-          double dz = Traits::VolumeWrapper(itr.second).dz();
+          double dz = VolumeWrapper(itr.second).dz();
           xtalMap_.emplace(itr.second,dz*type);
         }
       }
@@ -144,7 +144,6 @@ void CaloSteppingAction::update(const Traits::BeginRunWrapper& run) {
           volHCSD_.emplace_back(itr.second);
       }
     }
-  }
 #ifdef EDM_ML_DEBUG
   edm::LogVerbatim("Step") << volEBSD_.size() << " logical volumes for EB SD";
   for (unsigned int k=0; k<volEBSD_.size(); ++k)
@@ -160,9 +159,9 @@ void CaloSteppingAction::update(const Traits::BeginRunWrapper& run) {
 
 //=================================================================== per EVENT
 template <class Traits>
-void CaloSteppingAction<Traits>::update(const Traits::BeginEventWrapper& evt) {
+void CaloSteppingAction<Traits>::update(const BeginEventWrapper& evt) {
  
-  eventID_ = evt.GetEventID();
+  eventID_ = evt.getEventID();
   edm::LogVerbatim("Step") <<"CaloSteppingAction: Begin of event = " 
                            << eventID_;
   for (int k=0; k<CaloSteppingAction<Traits>::nSD_; ++k) {
@@ -173,11 +172,11 @@ void CaloSteppingAction<Traits>::update(const Traits::BeginEventWrapper& evt) {
 
 //=================================================================== each STEP
 template <class Traits>
-void CaloSteppingAction<Traits>::update(const Traits::StepWrapper& aStep) {
+void CaloSteppingAction<Traits>::update(const StepWrapper& aStep) {
 
   //  edm::LogVerbatim("Step") <<"CaloSteppingAction: At each Step";
   NaNTrap(aStep);
-  auto lv = aStep.GetVolume();
+  auto lv = aStep.getVolume();
   bool hc = (std::find(volHCSD_.begin(),volHCSD_.end(),lv)!=volHCSD_.end());
   bool eb = (std::find(volEBSD_.begin(),volEBSD_.end(),lv)!=volEBSD_.end());
   bool ee = (std::find(volEESD_.begin(),volEESD_.end(),lv)!=volEESD_.end());
@@ -187,15 +186,14 @@ void CaloSteppingAction<Traits>::update(const Traits::StepWrapper& aStep) {
     int        primID   = aStep.getTrackID();
     bool       em       = aStep.getEM();
     if (hc) {
-      int depth = aStep.getDepth();
-      int lay   = aStep.getLayer();
-      int det   = aStep.getDet();
-      auto unitID = getDetIDHC(det, lay, depth, math::XYZVectorD(aStep.getX(),aStep.getY(),aStep.getZ()));
+      int depth = (aStep.getCopyNo(0))%10 + 1;
+      int lay   = (aStep.getCopyNo(0)/10)%100 + 1;
+      int det   = (aStep.getCopyNo(1))/1000;
+      auto unitID = getDetIDHC(det, lay, depth, aStep.getPosition(false));
       if(unitID > 0 && dEStep > 0.0) {
         dEStep *= getBirkHC(dEStep, aStep.getStepLength(), aStep.getCharge(), aStep.getDensity());
         fillHit(unitID, dEStep, time, primID, 0, em, 2);
       }
-    }
     } else {
       EcalBaseNumber theBaseNumber;
       int  size = aStep.getSize();
@@ -203,7 +201,8 @@ void CaloSteppingAction<Traits>::update(const Traits::StepWrapper& aStep) {
       //Get name and copy numbers
       if (size > 1) {
         for (int ii = 0; ii < size ; ii++) {
-          theBaseNumber.addLevel(aStep.getVolumeName(ii), aStep.getVolumeNumber(ii));
+          const auto& nameNumber = aStep.getNameNumber(ii);
+          theBaseNumber.addLevel(nameNumber.first, nameNumber.second);
         }
       }
       auto unitID = (eb ? (ebNumberingScheme_->getUnitID(theBaseNumber)) :
@@ -237,22 +236,22 @@ void CaloSteppingAction<Traits>::update(const EndEventWrapper& evt) {
 }
 
 template <class Traits>
-void CaloSteppingAction<Traits>::NaNTrap(const Traits::StepWrapper& aStep) const {
+void CaloSteppingAction<Traits>::NaNTrap(const StepWrapper& aStep) const {
 
-  auto currentPos = aStep->GetTrack()->GetPosition();
+  auto currentPos = aStep.getPosition(true);
   double xyz = currentPos.x() + currentPos.y() + currentPos.z();
-  auto currentMom = aStep->GetTrack()->GetMomentum();
+  auto currentMom = aStep.getMomentum();
   xyz += currentMom.x() + currentMom.y() + currentMom.z();
 
   if (edm::isNotFinite(xyz)) {
-    auto  pCurrentVol = aStep->GetPreStepPoint()->GetPhysicalVolume();
-    auto& nameOfVol = pCurrentVol->GetName();
+    const auto& nameOfVol = aStep.getVolumeName();
     throw cms::Exception("Unknown", "CaloSteppingAction") 
       << " Corrupted Event - NaN detected in volume " << nameOfVol << "\n";
   }
 }
 
-uint32_t CaloSteppingAction::getDetIDHC(int det, int lay, int depth,
+template <class Traits>
+uint32_t CaloSteppingAction<Traits>::getDetIDHC(int det, int lay, int depth,
                                         const math::XYZVectorD& pos) const {
 
   HcalNumberingFromDDD::HcalID tmp = hcNumberingPS_.get()->unitID(det, lay, 
@@ -375,3 +374,9 @@ void CaloSteppingAction<Traits>::saveHits(int type) {
                                     hit.second.getDepth());
   }
 }
+
+#include "SimGVCore/Calo/interface/G4Traits.h"
+#include "SimGVCore/Calo/interface/GVTraits.h"
+
+template class CaloSteppingAction<G4Traits>;
+template class CaloSteppingAction<GVTraits>;

@@ -10,6 +10,7 @@
 #include "FWCore/PluginManager/interface/ModuleDef.h"
 
 #include "SimG4Core/Notification/interface/Observer.h"
+#include "SimG4Core/Notification/interface/BeginOfJob.h"
 #include "SimG4Core/Watcher/interface/SimProducer.h"
 #include "SimG4Core/Watcher/interface/SimWatcherFactory.h"
 
@@ -32,13 +33,24 @@
 
 template <class Traits>
 class CaloSteppingAction : public SimProducer,
-                           public Observer<const Traits::BeginJob *>
-                           public Observer<const Traits::BeginRun *>, 
-                           public Observer<const Traits::BeginEvent *>, 
-                           public Observer<const Traits::EndEvent *>, 
-                           public Observer<const Traits::Step *> {
+                           public Observer<const BeginOfJob *>,
+                           public Observer<const typename Traits::BeginRun *>, 
+                           public Observer<const typename Traits::BeginEvent *>, 
+                           public Observer<const typename Traits::EndEvent *>, 
+                           public Observer<const typename Traits::Step *> {
 
 public:
+  typedef typename Traits::BeginRun BeginRun;
+  typedef typename Traits::BeginEvent BeginEvent;
+  typedef typename Traits::EndEvent EndEvent;
+  typedef typename Traits::Step Step;
+  typedef typename Traits::Volume Volume;
+  typedef typename Traits::BeginRunWrapper BeginRunWrapper;
+  typedef typename Traits::BeginEventWrapper BeginEventWrapper;
+  typedef typename Traits::EndEventWrapper EndEventWrapper;
+  typedef typename Traits::StepWrapper StepWrapper;
+  typedef typename Traits::VolumeWrapper VolumeWrapper;
+
   CaloSteppingAction(const edm::ParameterSet &p);
   ~CaloSteppingAction() override;
 
@@ -47,20 +59,19 @@ public:
 private:
   void fillHits(edm::PCaloHitContainer& cc, int type);
   // observer classes
-  void update(const Traits::BeginJob * job)   override { update(BeginJobWrapper(job)); }
-  void update(const Traits::BeginRun * run)   override { update(BeginRunWrapper(run)); }
-  void update(const Traits::BeginEvent * evt) override { update(BeginEventWrapper(evt)); }
-  void update(const Traits::Step * step)      override { update(StepWrapper(step)); }
-  void update(const Traits::EndEvent * evt)   override { update(EndEventWrapper(evt)); }
+  void update(const BeginOfJob * job)         override;
+  void update(const BeginRun * run)   override { update(BeginRunWrapper(run)); }
+  void update(const BeginEvent * evt) override { update(BeginEventWrapper(evt)); }
+  void update(const Step * step)      override { update(StepWrapper(step)); }
+  void update(const EndEvent * evt)   override { update(EndEventWrapper(evt)); }
 
   // subordinate functions with unified interfaces
-  void update(const Traits::BeginJobWrapper& job);
-  void update(const Traits::BeginRunWrapper& run);
-  void update(const Traits::BeginEventWrapper& evt);
-  void update(const Traits::StepWrapper& step);
-  void update(const Traits::EndEventWrapper& evt);
+  void update(const BeginRunWrapper& run);
+  void update(const BeginEventWrapper& evt);
+  void update(const StepWrapper& step);
+  void update(const EndEventWrapper& evt);
 
-  void NaNTrap(const Traits::StepWrapper&) const;
+  void NaNTrap(const StepWrapper&) const;
   uint32_t getDetIDHC(int det, int lay, int depth,
 		      const math::XYZVectorD& pos) const;
   void fillHit(uint32_t id, double dE, double time, int primID, 
@@ -80,8 +91,8 @@ private:
 
   std::vector<std::string>              nameEBSD_, nameEESD_, nameHCSD_;
   std::vector<std::string>              nameHitC_;
-  std::vector<const Traits::Volume>   volEBSD_, volEESD_, volHCSD_;
-  std::map<const Traits::Volume,double> xtalMap_;
+  std::vector<const Volume>   volEBSD_, volEESD_, volHCSD_;
+  std::map<const Volume,double> xtalMap_;
   int                                   count_, eventID_;
   double                                slopeLY_, birkC1EC_, birkSlopeEC_;
   double                                birkCutEC_, birkC1HC_, birkC2HC_;
