@@ -19,6 +19,7 @@
 #include "Geant/MaterialProperties.h"
 #include "Geant/Typedefs.h"
 #include "Geant/SystemOfUnits.h"
+#include "base/Transformation3D.h"
 
 namespace sim {
 	template <class T, class V>
@@ -111,7 +112,9 @@ namespace sim {
 				auto const touch = track_->Path();
 				using Vector3D = vecgeom::Vector3D<double>;
 				Vector3D local;
-				touch->TopMatrix()->Transform(Vector3D(track_->X(),track_->Y(),track_->Z()),local);
+				vecgeom::cxx::Transformation3D m;
+				touch->TopMatrix(m);
+				m.Transform(Vector3D(track_->X(),track_->Y(),track_->Z()),local);
 				return local.z();
 			}
 			double getRadlen() const { return track_->GetMaterial()->GetMaterialProperties()->GetRadiationLength(); }
