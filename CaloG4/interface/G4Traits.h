@@ -1,11 +1,11 @@
-#ifndef SimGVCore_Calo_G4Traits
-#define SimGVCore_Calo_G4Traits
+#ifndef SimGVCore_CaloG4_G4Traits
+#define SimGVCore_CaloG4_G4Traits
 
-#include "SimGVCore/Calo/interface/BeginRunWrapper.h"
-#include "SimGVCore/Calo/interface/BeginEventWrapper.h"
-#include "SimGVCore/Calo/interface/EndEventWrapper.h"
-#include "SimGVCore/Calo/interface/StepWrapper.h"
-#include "SimGVCore/Calo/interface/VolumeWrapper.h"
+#include "SimGVCore/CaloG4/interface/BeginRunWrapper.h"
+#include "SimGVCore/CaloG4/interface/BeginEventWrapper.h"
+#include "SimGVCore/CaloG4/interface/EndEventWrapper.h"
+#include "SimGVCore/CaloG4/interface/StepWrapper.h"
+#include "SimGVCore/CaloG4/interface/VolumeWrapper.h"
 
 #include "SimG4Core/Notification/interface/BeginOfRun.h"
 #include "SimG4Core/Notification/interface/BeginOfEvent.h"

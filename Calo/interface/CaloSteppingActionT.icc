@@ -1,5 +1,8 @@
+#ifndef SimGVCore_Calo_CaloSteppingActionT_icc
+#define SimGVCore_Calo_CaloSteppingActionT_icc
+
 // to make hits in EB/EE/HC
-#include "SimGVCore/Calo/interface/CaloSteppingAction.h"
+#include "SimGVCore/Calo/interface/CaloSteppingActionT.h"
 #include "SimG4Core/Notification/interface/G4TrackToParticleID.h"
 
 #include "DataFormats/HcalDetId/interface/HcalDetId.h"
@@ -11,15 +14,6 @@
 #include "FWCore/Utilities/interface/isFinite.h"
 #include "FWCore/Utilities/interface/Exception.h"
 
-#include "G4LogicalVolumeStore.hh"
-#include "G4NavigationHistory.hh"
-#include "G4ParticleTable.hh"
-#include "G4PhysicalVolumeStore.hh"
-#include "G4RegionStore.hh"
-#include "G4Trap.hh"
-#include "G4UnitsTable.hh"
-#include "G4SystemOfUnits.hh"
-
 #include <cmath>
 #include <iostream>
 #include <iomanip>
@@ -27,7 +21,7 @@
 //#define EDM_ML_DEBUG
 
 template <class Traits>
-CaloSteppingAction<Traits>::CaloSteppingAction(const edm::ParameterSet &p) : 
+CaloSteppingActionT<Traits>::CaloSteppingActionT(const edm::ParameterSet &p) : 
   count_(0) {
 
   edm::ParameterSet iC = p.getParameter<edm::ParameterSet>("CaloSteppingAction");
@@ -70,22 +64,22 @@ CaloSteppingAction<Traits>::CaloSteppingAction(const edm::ParameterSet &p) :
   eeNumberingScheme_ = std::make_unique<EcalEndcapNumberingScheme>();
   hcNumberingPS_     = std::make_unique<HcalNumberingFromPS>(iC);
   hcNumberingScheme_ = std::make_unique<HcalNumberingScheme>();
-  for (int k=0; k<CaloSteppingAction::nSD_; ++k) {
+  for (int k=0; k<CaloSteppingActionT::nSD_; ++k) {
     slave_[k] = std::make_unique<CaloSlaveSD>(nameHitC_[k]);
     produces<edm::PCaloHitContainer>(nameHitC_[k]);
   }
 } 
 
 template <class Traits>
-CaloSteppingAction<Traits>::~CaloSteppingAction() {
+CaloSteppingActionT<Traits>::~CaloSteppingActionT() {
   edm::LogVerbatim("Step") << "CaloSteppingAction: -------->  Total number of "
                            << "selected entries : " << count_;
 }
 
 template <class Traits>
-void CaloSteppingAction<Traits>::produce(edm::Event& e, const edm::EventSetup&) {
+void CaloSteppingActionT<Traits>::produce(edm::Event& e, const edm::EventSetup&) {
 
-  for (int k=0; k<CaloSteppingAction::nSD_; ++k) {
+  for (int k=0; k<CaloSteppingActionT::nSD_; ++k) {
     saveHits(k);
     auto product = std::make_unique<edm::PCaloHitContainer>();
     fillHits(*product,k);
@@ -94,7 +88,7 @@ void CaloSteppingAction<Traits>::produce(edm::Event& e, const edm::EventSetup&) 
 }
 
 template <class Traits>
-void CaloSteppingAction<Traits>::fillHits(edm::PCaloHitContainer& cc, int type) {
+void CaloSteppingActionT<Traits>::fillHits(edm::PCaloHitContainer& cc, int type) {
   edm::LogVerbatim("Step") << "CaloSteppingAction::fillHits for type "
                            << type << " with "
                            << slave_[type].get()->hits().size() << " hits";
@@ -103,13 +97,13 @@ void CaloSteppingAction<Traits>::fillHits(edm::PCaloHitContainer& cc, int type) 
 }
 
 template <class Traits>
-void CaloSteppingAction<Traits>::update(const BeginOfJob * job) {
+void CaloSteppingActionT<Traits>::update(const BeginOfJob * job) {
   edm::LogVerbatim("Step") << "CaloSteppingAction:: Enter BeginOfJob";
 }
 
 //==================================================================== per RUN
 template <class Traits>
-void CaloSteppingAction<Traits>::update(const BeginRunWrapper& run) {
+void CaloSteppingActionT<Traits>::update(const BeginRunWrapper& run) {
 
   int irun = run.getRunID();
   edm::LogVerbatim("Step") << "CaloSteppingAction:: Begin of Run = " << irun;
@@ -159,12 +153,12 @@ void CaloSteppingAction<Traits>::update(const BeginRunWrapper& run) {
 
 //=================================================================== per EVENT
 template <class Traits>
-void CaloSteppingAction<Traits>::update(const BeginEventWrapper& evt) {
+void CaloSteppingActionT<Traits>::update(const BeginEventWrapper& evt) {
  
   eventID_ = evt.getEventID();
   edm::LogVerbatim("Step") <<"CaloSteppingAction: Begin of event = " 
                            << eventID_;
-  for (int k=0; k<CaloSteppingAction<Traits>::nSD_; ++k) {
+  for (int k=0; k<CaloSteppingActionT<Traits>::nSD_; ++k) {
     hitMap_[k].erase (hitMap_[k].begin(), hitMap_[k].end());
     slave_[k].get()->Initialize();
   }
@@ -172,7 +166,7 @@ void CaloSteppingAction<Traits>::update(const BeginEventWrapper& evt) {
 
 //=================================================================== each STEP
 template <class Traits>
-void CaloSteppingAction<Traits>::update(const StepWrapper& aStep) {
+void CaloSteppingActionT<Traits>::update(const StepWrapper& aStep) {
 
   //  edm::LogVerbatim("Step") <<"CaloSteppingAction: At each Step";
   NaNTrap(aStep);
@@ -228,7 +222,7 @@ void CaloSteppingAction<Traits>::update(const StepWrapper& aStep) {
 
 //================================================================ End of EVENT
 template <class Traits>
-void CaloSteppingAction<Traits>::update(const EndEventWrapper& evt) {
+void CaloSteppingActionT<Traits>::update(const EndEventWrapper& evt) {
   ++count_;
   // Fill event input 
   edm::LogVerbatim("Step") << "CaloSteppingAction: EndOfEvent " 
@@ -236,7 +230,7 @@ void CaloSteppingAction<Traits>::update(const EndEventWrapper& evt) {
 }
 
 template <class Traits>
-void CaloSteppingAction<Traits>::NaNTrap(const StepWrapper& aStep) const {
+void CaloSteppingActionT<Traits>::NaNTrap(const StepWrapper& aStep) const {
 
   auto currentPos = aStep.getPosition(true);
   double xyz = currentPos.x() + currentPos.y() + currentPos.z();
@@ -251,7 +245,7 @@ void CaloSteppingAction<Traits>::NaNTrap(const StepWrapper& aStep) const {
 }
 
 template <class Traits>
-uint32_t CaloSteppingAction<Traits>::getDetIDHC(int det, int lay, int depth,
+uint32_t CaloSteppingActionT<Traits>::getDetIDHC(int det, int lay, int depth,
                                         const math::XYZVectorD& pos) const {
 
   HcalNumberingFromDDD::HcalID tmp = hcNumberingPS_.get()->unitID(det, lay, 
@@ -260,7 +254,7 @@ uint32_t CaloSteppingAction<Traits>::getDetIDHC(int det, int lay, int depth,
 }
 
 template <class Traits>
-void CaloSteppingAction<Traits>::fillHit(uint32_t id, double dE, double time,
+void CaloSteppingActionT<Traits>::fillHit(uint32_t id, double dE, double time,
                                  int primID, uint16_t depth, double em,
                                  int flag) {
   CaloHitID  currentID(id, time, primID, depth);
@@ -280,7 +274,7 @@ void CaloSteppingAction<Traits>::fillHit(uint32_t id, double dE, double time,
 }
 
 template <class Traits>
-uint16_t CaloSteppingAction<Traits>::getDepth(bool flag, double crystalDepth,
+uint16_t CaloSteppingActionT<Traits>::getDepth(bool flag, double crystalDepth,
                                       double radl) const {
   uint16_t depth1 = (flag ? 0 : PCaloHit::kEcalDepthRefz);
   uint16_t depth2 = (uint16_t)floor(crystalDepth/radl);
@@ -293,7 +287,7 @@ uint16_t CaloSteppingAction<Traits>::getDepth(bool flag, double crystalDepth,
 }
 
 template <class Traits>
-double CaloSteppingAction<Traits>::curve_LY(double crystalLength, 
+double CaloSteppingActionT<Traits>::curve_LY(double crystalLength, 
                                     double crystalDepth) const {
   double weight = 1.;
   double dapd = crystalLength - crystalDepth;
@@ -315,7 +309,7 @@ double CaloSteppingAction<Traits>::curve_LY(double crystalLength,
 }
 
 template <class Traits>
-double CaloSteppingAction<Traits>::getBirkL3(double dEStep, double step, 
+double CaloSteppingActionT<Traits>::getBirkL3(double dEStep, double step, 
                                      double charge, double density) const {
   double weight = 1.;
   if (charge != 0. && step > 0.) {
@@ -337,7 +331,7 @@ double CaloSteppingAction<Traits>::getBirkL3(double dEStep, double step,
 }
 
 template <class Traits>
-double CaloSteppingAction<Traits>::getBirkHC(double dEStep, double step, double charge,
+double CaloSteppingActionT<Traits>::getBirkHC(double dEStep, double step, double charge,
                                      double density) const {
 
   double weight = 1.;
@@ -359,7 +353,7 @@ double CaloSteppingAction<Traits>::getBirkHC(double dEStep, double step, double 
 }
 
 template <class Traits>
-void CaloSteppingAction<Traits>::saveHits(int type) {
+void CaloSteppingActionT<Traits>::saveHits(int type) {
 
   edm::LogVerbatim("Step") << "CaloSteppingAction:: saveHits for type " 
                            << type << " with " << hitMap_[type].size()
@@ -375,8 +369,4 @@ void CaloSteppingAction<Traits>::saveHits(int type) {
   }
 }
 
-#include "SimGVCore/Calo/interface/G4Traits.h"
-#include "SimGVCore/Calo/interface/GVTraits.h"
-
-template class CaloSteppingAction<G4Traits>;
-template class CaloSteppingAction<GVTraits>;
+#endif

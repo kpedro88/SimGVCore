@@ -1,0 +1,7 @@
+<use name="SimGVCore/Calo"/>
+<use name="geantv"/>
+<use name="vecgeomv"/>
+<use name="veccore"/>
+<export>
+  <lib   name="1"/>
+</export>

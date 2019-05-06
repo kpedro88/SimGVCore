@@ -1,5 +1,5 @@
-#ifndef SimGVCore_CaloSteppingAction_H
-#define SimGVCore_CaloSteppingAction_H
+#ifndef SimGVCore_Calo_CaloSteppingActionT_H
+#define SimGVCore_Calo_CaloSteppingActionT_H
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/Framework/interface/Event.h"
@@ -17,7 +17,7 @@
 #include "SimDataFormats/CaloHit/interface/PCaloHitContainer.h"
 #include "SimDataFormats/SimHitMaker/interface/CaloSlaveSD.h"
 
-#include "SimG4CMS/Calo/interface/HcalNumberingScheme.h"
+#include "SimGVCore/Calo/interface/HcalNumberingScheme.h"
 #include "SimGVCore/Calo/interface/CaloGVHit.h"
 #include "SimGVCore/Calo/interface/HcalNumberingFromPS.h"
 
@@ -32,7 +32,7 @@
 #include <vector>
 
 template <class Traits>
-class CaloSteppingAction : public SimProducer,
+class CaloSteppingActionT : public SimProducer,
                            public Observer<const BeginOfJob *>,
                            public Observer<const typename Traits::BeginRun *>, 
                            public Observer<const typename Traits::BeginEvent *>, 
@@ -51,8 +51,8 @@ public:
   typedef typename Traits::StepWrapper StepWrapper;
   typedef typename Traits::VolumeWrapper VolumeWrapper;
 
-  CaloSteppingAction(const edm::ParameterSet &p);
-  ~CaloSteppingAction() override;
+  CaloSteppingActionT(const edm::ParameterSet &p);
+  ~CaloSteppingActionT() override;
 
   void produce(edm::Event&, const edm::EventSetup&) override;
 

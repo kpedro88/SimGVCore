@@ -1,0 +1,8 @@
+<use name="SimGVCore/Calo"/>
+<use name="SimG4CMS/Calo"/>
+<use name="SimG4Core/Notification"/>
+<use name="SimG4Core/Watcher"/>
+<use name="geant4core"/>
+<export>
+  <lib   name="1"/>
+</export>

@@ -1,8 +1,6 @@
 #include "SimGVCore/Calo/interface/CaloGVHit.h"
 #include <iostream>
 
-#include "G4SystemOfUnits.hh"
-
 CaloGVHit::CaloGVHit() {
   eventID_ = 0;
   elem_    = 0.;

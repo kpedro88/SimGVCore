@@ -12,13 +12,6 @@
 <use name="Geometry/Records"/>
 <use name="SimDataFormats/CaloHit"/>
 <use name="SimDataFormats/SimHitMaker"/>
-<use name="SimG4CMS/Calo"/>
-<use name="SimG4Core/Notification"/>
-<use name="SimG4Core/Watcher"/>
-<use name="geant4core"/>
-<use name="geantv"/>
-<use name="vecgeomv"/>
-<use name="veccore"/>
 <export>
   <lib   name="1"/>
 </export>

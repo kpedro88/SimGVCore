@@ -1,5 +1,5 @@
-#ifndef SimGVCore_CaloGVHit_h
-#define SimGVCore_CaloGVHit_h 1
+#ifndef SimGVCore_Calo_CaloGVHit_h
+#define SimGVCore_Calo_CaloGVHit_h 1
 ///////////////////////////////////////////////////////////////////////////////
 // File: CaloGVHit.h
 // Date: 10.02 Taken from CMSCaloHit
@@ -22,7 +22,7 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-#include "SimG4CMS/Calo/interface/CaloHitID.h"
+#include "SimGVCore/Calo/interface/CaloHitID.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 #include "DataFormats/Math/interface/Point3D.h"
 #include <iostream>
