@@ -13,8 +13,8 @@
 
 struct GVTraits {
 	typedef GVRun BeginRun;
-	typedef geant::Event BeginEvent;
-	typedef geant::Event EndEvent;
+	typedef GVBeginEvent BeginEvent;
+	typedef GVEndEvent EndEvent;
 	typedef geant::Track Step;
 	typedef vecgeom::LogicalVolume Volume;
 	

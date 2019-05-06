@@ -4,6 +4,8 @@
 #include "SimG4Core/Notification/interface/BeginOfEvent.h"
 #include "Geant/Event.h"
 
+struct GVBeginEvent : public geant::Event { };
+
 namespace sim {
 	template <class T>
 	class BeginEventWrapper {
@@ -23,13 +25,13 @@ namespace sim {
 	};
 	
 	template <>
-	class BeginEventWrapper<geant::Event> {
+	class BeginEventWrapper<GVBeginEvent> {
 		public:
-			BeginEventWrapper(const geant::Event* tmp) : event_(tmp) {}
+			BeginEventWrapper(const GVBeginEvent* tmp) : event_(tmp) {}
 			int getEventID() const { return event_->GetEvent(); }
 			
 		private:
-			const geant::Event* event_;
+			const GVBeginEvent* event_;
 	};
 }
 

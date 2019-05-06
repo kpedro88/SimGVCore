@@ -4,6 +4,8 @@
 #include "SimG4Core/Notification/interface/EndOfEvent.h"
 #include "Geant/Event.h"
 
+struct GVEndEvent : public geant::Event { };
+
 namespace sim {
 	template <class T>
 	class EndEventWrapper {
@@ -23,13 +25,13 @@ namespace sim {
 	};
 	
 	template <>
-	class EndEventWrapper<geant::Event> {
+	class EndEventWrapper<GVEndEvent> {
 		public:
-			EndEventWrapper(const geant::Event* tmp) : event_(tmp) {}
+			EndEventWrapper(const GVEndEvent* tmp) : event_(tmp) {}
 			int getEventID() const { return event_->GetEvent(); }
 			
 		private:
-			const geant::Event* event_;
+			const GVEndEvent* event_;
 	};
 }
 
