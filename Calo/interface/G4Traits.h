@@ -18,7 +18,7 @@ struct G4Traits {
 	typedef BeginOfEvent BeginEvent;
 	typedef EndOfEvent EndEvent;
 	typedef G4Step Step;
-	typedef G4LogicalVolume* Volume;
+	typedef G4LogicalVolume Volume;
 	
 	typedef sim::BeginRunWrapper<BeginRun> BeginRunWrapper;
 	typedef sim::BeginEventWrapper<BeginEvent> BeginEventWrapper;

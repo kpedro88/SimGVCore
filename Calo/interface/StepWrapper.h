@@ -25,7 +25,7 @@ namespace sim {
 	class StepWrapper {
 		public:
 			StepWrapper(const T tmp) = delete;
-			V getVolume() const = delete;
+			const V* getVolume() const = delete;
 			double getEnergyDeposit() const = delete;
 			double getTime() const = delete;
 			int getTrackID() const = delete;
@@ -44,10 +44,10 @@ namespace sim {
 	};
 
 	template <>
-	class StepWrapper<G4Step, G4LogicalVolume*> {
+	class StepWrapper<G4Step, G4LogicalVolume> {
 		public:
 			StepWrapper(const G4Step* tmp) : step_(tmp) {}
-			G4LogicalVolume* getVolume() const { return step_->GetPreStepPoint()->GetPhysicalVolume()->GetLogicalVolume(); }
+			const G4LogicalVolume* getVolume() const { return step_->GetPreStepPoint()->GetPhysicalVolume()->GetLogicalVolume(); }
 			double getEnergyDeposit() const { return step_->GetTotalEnergyDeposit()/MeV; }
 			double getTime() const { return step_->GetTrack()->GetGlobalTime()/nanosecond; }
 			int getTrackID() const { return step_->GetTrack()->GetTrackID(); }
@@ -94,7 +94,7 @@ namespace sim {
 	class StepWrapper<geant::Track, vecgeom::LogicalVolume> {
 		public:
 			StepWrapper(const geant::Track* tmp) : track_(tmp) {}
-			vecgeom::LogicalVolume getVolume() const { return step_->GetVolume(); }
+			const vecgeom::LogicalVolume* getVolume() const { return track_->GetVolume(); }
 			double getEnergyDeposit() const { return track_->Edep()/geant::units::MeV; }
 			double getTime() const { return track_->Time()/geant::units::nanosecond; }
 			int getTrackID() const { return track_->Particle(); }

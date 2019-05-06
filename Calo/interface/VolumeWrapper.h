@@ -15,13 +15,13 @@ namespace sim {
 	template <class T>
 	class VolumeWrapper {
 		public:
-			VolumeWrapper(const T tmp) = delete;
-			static std::map<const std::string, const T> getVolumes() = delete;
+			VolumeWrapper(const T* tmp) = delete;
+			static std::map<const std::string, const T*> getVolumes() = delete;
 			double dz() const = delete;
 	};
 	
 	template <>
-	class VolumeWrapper<G4LogicalVolume*> {
+	class VolumeWrapper<G4LogicalVolume> {
 		public:
 			VolumeWrapper(const G4LogicalVolume* tmp) : wrapped_(tmp) {}
 			static std::map<const std::string, const G4LogicalVolume*> getVolumes(){
@@ -46,22 +46,22 @@ namespace sim {
 	template <>
 	class VolumeWrapper<vecgeom::LogicalVolume> {
 		public:
-			VolumeWrapper(const vecgeom::LogicalVolume& tmp) : wrapped_(tmp) {}
-			static std::map<const std::string, const vecgeom::LogicalVolume> getVolumes(){
-				std::map<const std::string, const vecgeom::LogicalVolume> nameMap;
-				std::vector<vecgeom::LogicalVolume> theLogicalVolumes;
+			VolumeWrapper(const vecgeom::LogicalVolume* tmp) : wrapped_(tmp) {}
+			static std::map<const std::string, const vecgeom::LogicalVolume*> getVolumes(){
+				std::map<const std::string, const vecgeom::LogicalVolume*> nameMap;
+				std::vector<const vecgeom::LogicalVolume*> theLogicalVolumes;
 				vecgeom::GeoManager::Instance().GetAllLogicalVolumes(theLogicalVolumes);
-				for (const auto& volume : theLogicalVolumes)
-					nameMap.emplace(volume.GetLabel(), volume);
+				for (const auto volume : theLogicalVolumes)
+					nameMap.emplace(volume->GetLabel(), volume);
 				return nameMap;
 			}
 			double dz() const {
-				auto *solid = static_cast<const vecgeom::UnplacedTrapezoid*>(wrapped_.GetUnplacedVolume());
+				auto *solid = static_cast<const vecgeom::UnplacedTrapezoid*>(wrapped_->GetUnplacedVolume());
 				return solid->GetDz()/mm; // should one multiply by 2 here?
 			}
 			
 		private:
-			const vecgeom::LogicalVolume& wrapped_;
+			const vecgeom::LogicalVolume* wrapped_;
 	};
 }
 
