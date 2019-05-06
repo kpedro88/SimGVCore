@@ -5,12 +5,6 @@
 #include <vector>
 #include <string>
 
-//includes for G4
-#include "G4LogicalVolume.hh"
-
-//includes for GV
-#include "volumes/LogicalVolume.h"
-
 namespace sim {
 	template <class T>
 	class VolumeWrapper {
@@ -19,7 +13,11 @@ namespace sim {
 			static std::map<const std::string, const T*> getVolumes() = delete;
 			double dz() const = delete;
 	};
-	
+
+#ifdef USEGEANT4	
+//includes for G4
+#include "G4LogicalVolume.hh"
+
 	template <>
 	class VolumeWrapper<G4LogicalVolume> {
 		public:
@@ -42,7 +40,13 @@ namespace sim {
 		private:
 			const G4LogicalVolume* wrapped_;
 	};
-	
+
+#endif
+
+#ifdef USEGEANTV
+//includes for GV
+#include "volumes/LogicalVolume.h"
+
 	template <>
 	class VolumeWrapper<vecgeom::LogicalVolume> {
 		public:
@@ -63,6 +67,9 @@ namespace sim {
 		private:
 			const vecgeom::LogicalVolume* wrapped_;
 	};
+
+#endif
+
 }
 
 #endif

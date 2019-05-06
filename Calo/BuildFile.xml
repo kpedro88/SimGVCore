@@ -15,10 +15,17 @@
 <use name="SimG4CMS/Calo"/>
 <use name="SimG4Core/Notification"/>
 <use name="SimG4Core/Watcher"/>
-<use name="geant4core"/>
-<use name="geantv"/>
-<use name="vecgeomv"/>
-<use name="veccore"/>
+<library name="CaloGV">
+  <flags CXXFLAGS="-DUSEGEANTV"/>
+  <use name="geantv"/>
+  <use name="vecgeomv"/>
+  <use name="veccore"/>
+</library>
+<library name="CaloG4">
+  <flags CXXFLAGS="-DUSEGEANT4"/>
+  <use name="geant4core"/>
+</library>
 <export>
-  <lib   name="1"/>
+  <lib   name="CaloGV"/>
+  <lib   name="CaloG4"/>
 </export>

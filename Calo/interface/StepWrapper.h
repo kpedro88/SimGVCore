@@ -6,21 +6,6 @@
 #include <string>
 #include <utility>
 
-//includes for G4
-#include "G4Step.hh"
-#include "G4VTouchable.hh"
-#include "G4ParticleTable.hh"
-#include "G4UnitsTable.hh"
-#include "G4SystemOfUnits.hh"
-
-//includes for GV
-#include "Geant/Track.h"
-#include "Geant/Particle.h"
-#include "Geant/MaterialProperties.h"
-#include "Geant/Typedefs.h"
-#include "Geant/SystemOfUnits.h"
-#include "base/Transformation3D.h"
-
 namespace sim {
 	template <class T, class V>
 	class StepWrapper {
@@ -43,6 +28,14 @@ namespace sim {
 			std::pair<std::string,int> getNameNumber(int level) const = delete;
 			std::string getVolumeName() const = delete;
 	};
+
+#ifdef USEGEANT4
+//includes for G4
+#include "G4Step.hh"
+#include "G4VTouchable.hh"
+#include "G4ParticleTable.hh"
+#include "G4UnitsTable.hh"
+#include "G4SystemOfUnits.hh"
 
 	template <>
 	class StepWrapper<G4Step, G4LogicalVolume> {
@@ -90,7 +83,18 @@ namespace sim {
 		private:
 			const G4Step* step_;
 	};
-	
+
+#endif
+
+#ifdef USEGEANTV
+//includes for GV
+#include "Geant/Track.h"
+#include "Geant/Particle.h"
+#include "Geant/MaterialProperties.h"
+#include "Geant/Typedefs.h"
+#include "Geant/SystemOfUnits.h"
+#include "base/Transformation3D.h"
+
 	template <>
 	class StepWrapper<geant::Track, vecgeom::LogicalVolume> {
 		public:
@@ -148,6 +152,9 @@ namespace sim {
 		private:
 			const geant::Track* track_;
 	};
+
+#endif
+
 }
 
 #endif

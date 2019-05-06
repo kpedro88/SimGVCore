@@ -11,15 +11,6 @@
 #include "FWCore/Utilities/interface/isFinite.h"
 #include "FWCore/Utilities/interface/Exception.h"
 
-#include "G4LogicalVolumeStore.hh"
-#include "G4NavigationHistory.hh"
-#include "G4ParticleTable.hh"
-#include "G4PhysicalVolumeStore.hh"
-#include "G4RegionStore.hh"
-#include "G4Trap.hh"
-#include "G4UnitsTable.hh"
-#include "G4SystemOfUnits.hh"
-
 #include <cmath>
 #include <iostream>
 #include <iomanip>
@@ -375,8 +366,12 @@ void CaloSteppingAction<Traits>::saveHits(int type) {
   }
 }
 
+#ifdef USEGEANT4
 #include "SimGVCore/Calo/interface/G4Traits.h"
-#include "SimGVCore/Calo/interface/GVTraits.h"
-
 template class CaloSteppingAction<G4Traits>;
+#endif
+
+#ifdef USEGEANTV
+#include "SimGVCore/Calo/interface/GVTraits.h"
 template class CaloSteppingAction<GVTraits>;
+#endif

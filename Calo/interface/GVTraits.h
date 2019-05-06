@@ -1,3 +1,4 @@
+#ifdef USEGEANTV
 #ifndef SimGVCore_Calo_GVTraits
 #define SimGVCore_Calo_GVTraits
 
@@ -13,8 +14,8 @@
 
 struct GVTraits {
 	typedef GVRun BeginRun;
-	typedef GVBeginEvent BeginEvent;
-	typedef GVEndEvent EndEvent;
+	typedef sim::GVBeginEvent BeginEvent;
+	typedef sim::GVEndEvent EndEvent;
 	typedef geant::Track Step;
 	typedef vecgeom::LogicalVolume Volume;
 	
@@ -25,4 +26,5 @@ struct GVTraits {
 	typedef sim::VolumeWrapper<Volume> VolumeWrapper;
 };
 
+#endif
 #endif

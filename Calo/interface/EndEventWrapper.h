@@ -1,11 +1,6 @@
 #ifndef SimGVCore_Calo_EndEventWrapper
 #define SimGVCore_Calo_EndEventWrapper
 
-#include "SimG4Core/Notification/interface/EndOfEvent.h"
-#include "Geant/Event.h"
-
-struct GVEndEvent : public geant::Event { };
-
 namespace sim {
 	template <class T>
 	class EndEventWrapper {
@@ -13,7 +8,10 @@ namespace sim {
 			EndEventWrapper(const T tmp) = delete;
 			int getEventID() const = delete;
 	};
-	
+
+#ifdef USEGEANT4	
+#include "SimG4Core/Notification/interface/EndOfEvent.h"
+
 	template <>
 	class EndEventWrapper<EndOfEvent> {
 		public:
@@ -23,7 +21,14 @@ namespace sim {
 		private:
 			const EndOfEvent* event_;
 	};
-	
+
+#endif
+
+#ifdef USEGEANTV
+#include "Geant/Event.h"
+
+	struct GVEndEvent : public geant::Event { };
+
 	template <>
 	class EndEventWrapper<GVEndEvent> {
 		public:
@@ -33,6 +38,9 @@ namespace sim {
 		private:
 			const GVEndEvent* event_;
 	};
+
+#endif
+
 }
 
 #endif

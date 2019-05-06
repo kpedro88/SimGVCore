@@ -1,11 +1,6 @@
 #ifndef SimGVCore_Calo_BeginEventWrapper
 #define SimGVCore_Calo_BeginEventWrapper
 
-#include "SimG4Core/Notification/interface/BeginOfEvent.h"
-#include "Geant/Event.h"
-
-struct GVBeginEvent : public geant::Event { };
-
 namespace sim {
 	template <class T>
 	class BeginEventWrapper {
@@ -13,7 +8,10 @@ namespace sim {
 			BeginEventWrapper(const T tmp) = delete;
 			int getEventID() const = delete;
 	};
-	
+
+#ifdef USEGEANT4
+#include "SimG4Core/Notification/interface/BeginOfEvent.h"
+
 	template <>
 	class BeginEventWrapper<BeginOfEvent> {
 		public:
@@ -23,7 +21,14 @@ namespace sim {
 		private:
 			const BeginOfEvent* event_;
 	};
-	
+
+#endif
+
+#ifdef USEGEANTV
+#include "Geant/Event.h"
+
+	struct GVBeginEvent : public geant::Event { };
+
 	template <>
 	class BeginEventWrapper<GVBeginEvent> {
 		public:
@@ -33,6 +38,9 @@ namespace sim {
 		private:
 			const GVBeginEvent* event_;
 	};
+
+#endif
+
 }
 
 #endif

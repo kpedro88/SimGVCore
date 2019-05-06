@@ -1,10 +1,6 @@
 #ifndef SimGVCore_Calo_BeginRunWrapper
 #define SimGVCore_Calo_BeginRunWrapper
 
-#include "SimG4Core/Notification/interface/BeginOfRun.h"
-
-//GeantV does not provide a Run object
-struct GVRun { };
 
 namespace sim {
 	template <class T>
@@ -13,7 +9,10 @@ namespace sim {
 			BeginRunWrapper(const T tmp) = delete;
 			int getRunID() const = delete;
 	};
-	
+
+#ifdef USEGEANT4
+#include "SimG4Core/Notification/interface/BeginOfRun.h"
+
 	template <>
 	class BeginRunWrapper<BeginOfRun> {
 		public:
@@ -23,7 +22,13 @@ namespace sim {
 		private:
 			const BeginOfRun* run_;
 	};
-	
+
+#endif
+
+#ifdef USEGEANTV
+	//GeantV does not provide a Run object
+	struct GVRun { };
+
 	template <>
 	class BeginRunWrapper<GVRun> {
 		public:
@@ -33,6 +38,9 @@ namespace sim {
 		private:
 			const GVRun* run_;
 	};
+
+#endif
+
 }
 
 #endif

@@ -1,3 +1,4 @@
+#ifdef USEGEANT4
 #ifndef SimGVCore_Calo_G4Traits
 #define SimGVCore_Calo_G4Traits
 
@@ -27,4 +28,5 @@ struct G4Traits {
 	typedef sim::VolumeWrapper<Volume> VolumeWrapper;
 };
 
+#endif
 #endif
