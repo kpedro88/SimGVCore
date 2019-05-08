@@ -56,14 +56,19 @@ public:
 
   void produce(edm::Event&, const edm::EventSetup&) override;
 
-private:
-  void fillHits(edm::PCaloHitContainer& cc, int type);
   // observer classes
   void update(const BeginOfJob * job)         override;
   void update(const BeginRun * run)   override { update(BeginRunWrapper(run)); }
   void update(const BeginEvent * evt) override { update(BeginEventWrapper(evt)); }
   void update(const Step * step)      override { update(StepWrapper(step)); }
   void update(const EndEvent * evt)   override { update(EndEventWrapper(evt)); }
+
+  // helpers
+  const edm::ParameterSet& GetParams() const;
+  bool Merge(const CaloSteppingActionT<Traits>& other);
+
+private:
+  void fillHits(edm::PCaloHitContainer& cc, int type);
 
   // subordinate functions with unified interfaces
   void update(const BeginRunWrapper& run);
@@ -81,6 +86,8 @@ private:
   double   getBirkL3(double dE, double step, double chg, double dens) const;
   double   getBirkHC(double dE, double step, double chg, double dens) const;
   void     saveHits(int flag);
+
+  edm::ParameterSet params_;
 
   static const int                      nSD_= 3;
   std::unique_ptr<EcalBarrelNumberingScheme> ebNumberingScheme_;

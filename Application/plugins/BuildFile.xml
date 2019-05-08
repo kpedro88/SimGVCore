@@ -6,6 +6,8 @@
 <use name="SimDataFormats/GeneratorProducts"/>
 <use name="Fireworks/Geometry"/>
 <use name="SimGVCore/Application"/>
+<use name="SimGVCore/CaloGV"/>
+<use name="vecmath"/>
 <use name="veccore"/>
 <use name="geantv"/>
 <use name="hepmc"/>

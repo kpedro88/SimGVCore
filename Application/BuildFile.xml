@@ -1,7 +1,9 @@
+<use name="SimGVCore/CaloGV"/>
 <use name="FWCore/MessageLogger"/>
 <use name="geantv"/>
 <use name="vecgeomv"/>
 <use name="veccore"/>
+<use name="vecmath"/>
 <use name="rootgeom"/>
 <use name="tbb"/>
 <export>

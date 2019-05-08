@@ -2,8 +2,7 @@
 #define SimGVCore_CaloGV_CaloSteppingAction_H
 
 #include "SimGVCore/Calo/interface/CaloSteppingActionT.h"
-
-class GVTraits;
+#include "SimGVCore/CaloGV/interface/GVTraits.h"
 
 using CaloSteppingAction = CaloSteppingActionT<GVTraits>;
 

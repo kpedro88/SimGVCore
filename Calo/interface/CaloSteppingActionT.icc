@@ -22,6 +22,7 @@
 
 template <class Traits>
 CaloSteppingActionT<Traits>::CaloSteppingActionT(const edm::ParameterSet &p) : 
+  params_(p),
   count_(0) {
 
   edm::ParameterSet iC = p.getParameter<edm::ParameterSet>("CaloSteppingAction");
@@ -85,6 +86,26 @@ void CaloSteppingActionT<Traits>::produce(edm::Event& e, const edm::EventSetup&)
     fillHits(*product,k);
     e.put(std::move(product),nameHitC_[k]);
   }
+}
+
+//access stored params (to make another instance of this class)
+template <class Traits>
+const edm::ParameterSet& CaloSteppingActionT<Traits>::GetParams() const {
+  return params_;
+}
+
+template <class Traits>
+bool CaloSteppingActionT<Traits>::Merge(const CaloSteppingActionT<Traits>& other) {
+  //fill hits from other instance
+  for (int k=0; k<CaloSteppingActionT::nSD_; ++k) {
+    for(const auto& hit : other.hitMap_[k]){
+      auto evID = hit.first;
+      auto it = hitMap_[k].find(evID);
+      if(it != hitMap_[k].end()) it->second.addEnergyDeposit(hit.second.getEM(),hit.second.getHadr());
+      else hitMap_[k][evID] = hit.second;
+    }
+  }
+  return true;
 }
 
 template <class Traits>
