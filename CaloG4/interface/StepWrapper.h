@@ -2,6 +2,7 @@
 #define SimGVCore_CaloG4_StepWrapper
 
 #include "SimGVCore/Calo/interface/StepWrapper.h"
+#include "SimG4Core/Notification/interface/G4TrackToParticleID.h"
 
 //includes for G4
 #include "G4Step.hh"
