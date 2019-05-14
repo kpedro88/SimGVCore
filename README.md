@@ -16,21 +16,24 @@ ln -s install-geant/* .
 cd $CMSSW_BASE/src
 cmsenv
 git cms-init
-git clone git@github.com:kpedro88/SimGVCore.git
+git clone git@github.com:kpedro88/SimGVCore.git -b SensDetTemplateWrapper
 scram b -j 8
 ```
 (Important to `cmsenv` again after installation because of `scram setup` for new tools.)
 
 Separate instructions for comparison tests w/ Geant4:
 ```
+setenv SCRAM_ARCH slc6_amd64_gcc630
 cmsrel CMSSW_10_2_0
 cd CMSSW_10_2_0/src
 cmsenv
 git cms-merge-topic kpedro88:GVPhysicsList
-git clone git@github.com:kpedro88/SimGVCore.git
+git clone git@github.com:kpedro88/SimGVCore.git -b SensDetTemplateWrapper
 cd SimGVCore
 git config core.sparseCheckout true
-cat << 'EOF_SPARSE' > .git/info/sparse-checkout
+cat << EOF_SPARSE > .git/info/sparse-checkout
+/Calo
+/CaloG4
 /Application/test
 /Application/python
 README.md
