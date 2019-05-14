@@ -1,5 +1,5 @@
 import FWCore.ParameterSet.Config as cms
-from optGenSim import options
+from SimGVCore.Application.optGenSim import options
 
 # eventually an era might be needed here
 process = cms.Process('SIM')
@@ -120,8 +120,8 @@ if options.sim=="Geant4":
     process.load("Configuration.StandardSequences.SimIdeal_cff")
 
     # customize physics list to match GeantV
-    process.g4SimHits.Physics.type = cms.string("SimG4Core/Physics/DummyPhysics")
-    process.g4SimHits.Physics.DummyEMPhysics = cms.bool(False)
+    process.g4SimHits.Physics.type = cms.string("SimG4Core/Physics/DummyGVPhysics")
+    process.g4SimHits.Physics.DummyEMPhysics = cms.bool(True)
     process.g4SimHits.Watchers = cms.VPSet(scoring_)
 
 # modules for GeantV

@@ -2,4 +2,3 @@
 #include "SimG4Core/Watcher/interface/SimWatcherFactory.h"
 
 DEFINE_SIMWATCHER(CaloSteppingAction);
-

@@ -1,6 +1,12 @@
 <use   name="FWCore/PluginManager"/>
-<use   name="SimG4Core/Watcher"/>
-<use   name="SimGVCore/CaloG4"/>
-<library   file="*.cc" name="SimGVCoreCaloG4Plugins">
+<library   file="module.cc" name="SimGVCoreCaloG4Plugins">
+  <use   name="SimGVCore/CaloG4"/>
+  <use   name="SimG4Core/Watcher"/>
+  <flags   EDM_PLUGIN="1"/>
+</library>
+<library   file="DummyGVPhysics.cc">
+  <use   name="SimGVCore/CaloG4"/>
+  <use   name="SimG4Core/Physics"/>
+  <use   name="geant4core"/>
   <flags   EDM_PLUGIN="1"/>
 </library>
