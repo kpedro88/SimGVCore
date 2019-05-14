@@ -1,5 +1,5 @@
 import FWCore.ParameterSet.Config as cms
-from optGenSim import options
+from SimGVCore.Application.optGenSim import options
 
 process = cms.Process('GEN')
 
