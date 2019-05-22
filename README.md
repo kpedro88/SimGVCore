@@ -13,6 +13,7 @@ mkdir work
 cd work
 git clone git@github.com:kpedro88/install-geant.git -b CMSSW_10_2_X
 ln -s install-geant/* .
+./setup.sh -j 8 -I all
 cd $CMSSW_BASE/src
 cmsenv
 git cms-init
