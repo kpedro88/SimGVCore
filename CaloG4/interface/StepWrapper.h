@@ -34,6 +34,10 @@ namespace sim {
 			}
 			double getRadlen() const { return step_->GetPreStepPoint()->GetMaterial()->GetRadlen(); }
 			int getCopyNo(int level) const { return step_->GetPreStepPoint()->GetTouchable()->GetReplicaNumber(level); }
+			std::pair<int,int> getCopyNos() const { 
+				auto const touch = step_->GetPreStepPoint()->GetTouchable();
+			        return std::make_pair(touch->GetReplicaNumber(0),touch->GetReplicaNumber(1));
+			}
 			math::XYZVectorD getPosition(bool trk) const {
 				auto pos = trk ? step_->GetTrack()->GetPosition() : step_->GetPreStepPoint()->GetPosition();
 				double xp = pos.x()/mm;
@@ -51,6 +55,13 @@ namespace sim {
 			std::pair<std::string,int> getNameNumber(int level) const {
 				auto const touch = step_->GetPreStepPoint()->GetTouchable();
 				return std::make_pair(touch->GetVolume(level)->GetName(), touch->GetReplicaNumber(level));
+			}
+			void setNameNumber(EcalBaseNumber & baseNumber) const {
+			        int size = (1+step_->GetPreStepPoint()->GetTouchable()->GetHistoryDepth());
+				if (baseNumber.getCapacity() < size ) baseNumber.setSize(size);
+				auto const touch = step_->GetPreStepPoint()->GetTouchable();
+				for (int ii = 0; ii < size ; ii++)
+				  baseNumber.addLevel(touch->GetVolume(ii)->GetName(), touch->GetReplicaNumber(ii));
 			}
 			std::string getVolumeName() const {
 				return step_->GetPreStepPoint()->GetPhysicalVolume()->GetName();

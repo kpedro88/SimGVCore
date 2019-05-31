@@ -28,7 +28,7 @@ namespace sim {
 			double getStepLength() const { return track_->GetStep()/geant::units::mm; }
 			double getCharge() const { return track_->Charge()/geant::units::eplus; }
 			double getDensity() const { return track_->GetMaterial()->GetDensity(); }
-			int getSize() const { return (1+track_->Path()->GetLevel()); }
+			int getSize() const { return (2+track_->Path()->GetLevel()); }
 			double getDz() const {
 				auto const touch = track_->Path();
 				using Vector3D = vecgeom::Vector3D<double>;
@@ -42,7 +42,12 @@ namespace sim {
 			int getCopyNo(int level) const {
 				auto const touch = track_->Path(); // returns vecgeom::NavigationState*
 				int theSize = touch->GetLevel();
-				return touch->ToPlacedVolume(theSize-level)->GetCopyNo();
+				return touch->At(theSize-level)->GetCopyNo();
+			}
+			std::pair<int,int> getCopyNos() const {
+				auto const touch = track_->Path(); // returns vecgeom::NavigationState*
+				int theSize = touch->GetLevel();
+				return std::make_pair(touch->At(theSize)->GetCopyNo(),touch->At(theSize-1)->GetCopyNo());
 			}
 			math::XYZVectorD getPosition(bool) const {
 				//GeantV currently does not provide prestep info
@@ -57,10 +62,35 @@ namespace sim {
 				double pz = track_->Pz()/mm;
 				return math::XYZVectorD(px,py,pz);
 			}
+			std::string getName(const std::string n) const {
+			  std::string name;
+			  std::string::size_type pos1 = n.find(':');
+			  std::string::size_type pos2 = n.rfind('_');
+			  if (pos1==std::string::npos) {
+			    if (pos2==std::string::npos) name = n;
+			    else name = std::string(n,0,pos2);
+			  } else {
+			    if (pos2==std::string::npos) name = std::string(n,pos1+1,n.size()-pos1-1);
+			    else name = std::string(n,pos1+1,pos2-pos1-1);
+			  }
+			  return name;
+			}
 			std::pair<std::string,int> getNameNumber(int level) const {
 				auto const touch = track_->Path(); // returns vecgeom::NavigationState*
 				int theSize = touch->GetLevel();
-				return std::make_pair(touch->ToPlacedVolume(theSize-level)->GetName(), touch->ToPlacedVolume(theSize-level)->GetCopyNo());
+				auto const placed = touch->At(theSize-level);
+				return std::make_pair(getName(placed->GetName()), placed->GetCopyNo());
+			}
+			void setNameNumber(EcalBaseNumber & baseNumber) const {
+			        int size = getSize();
+				if (baseNumber.getCapacity() < size ) baseNumber.setSize(size);
+				auto const touch = track_->Path();
+				int theSize = touch->GetLevel();
+				for (int ii = 0; ii < size-1 ; ii++) {
+				  auto const placed = touch->At(theSize-ii);
+				  baseNumber.addLevel(getName(placed->GetName()), placed->GetCopyNo());
+				}
+				baseNumber.addLevel("World", 0);
 			}
 			std::string getVolumeName() const {
 				return track_->GetVolume()->GetLabel();

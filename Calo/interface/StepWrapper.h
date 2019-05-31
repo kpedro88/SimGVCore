@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include <utility>
+#include "Geometry/EcalCommonData/interface/EcalBaseNumber.h"
 
 namespace sim {
 	template <class T, class V>
@@ -23,9 +24,11 @@ namespace sim {
 			double getDz() const = delete;
 			double getRadlen() const = delete;
 			int getCopyNo(int level) const = delete;
+			std::pair<int,int> getCopyNos() const = delete;
 			math::XYZVectorD getPosition(bool) const = delete;
 			math::XYZVectorD getMomentum() const = delete;
 			std::pair<std::string,int> getNameNumber(int level) const = delete;
+			void setNameNumber(EcalBaseNumber & baseNumber) const = delete;
 			std::string getVolumeName() const = delete;
 	};
 }

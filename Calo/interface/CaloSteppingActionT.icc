@@ -38,6 +38,7 @@ CaloSteppingActionT<Traits>::CaloSteppingActionT(const edm::ParameterSet &p) :
   birkC2HC_       = iC.getParameter<double>("BirkC2HC");
   birkC3HC_       = iC.getParameter<double>("BirkC3HC");
 
+#ifdef EDM_ML_DEBUG
   edm::LogVerbatim("Step") << "CaloSteppingAction:: " << nameEBSD_.size() 
                            << " names for EB SD's";
   for (unsigned int k=0; k<nameEBSD_.size(); ++k)
@@ -60,7 +61,7 @@ CaloSteppingActionT<Traits>::CaloSteppingActionT(const edm::ParameterSet &p) :
                            << " hit collections";
   for (unsigned int k=0; k<nameHitC_.size(); ++k)
     edm::LogVerbatim("Step") << "[" << k << "] " << nameHitC_[k];
-
+#endif
   ebNumberingScheme_ = std::make_unique<EcalBarrelNumberingScheme>();
   eeNumberingScheme_ = std::make_unique<EcalEndcapNumberingScheme>();
   hcNumberingPS_     = std::make_unique<HcalNumberingFromPS>(iC);
@@ -110,25 +111,30 @@ bool CaloSteppingActionT<Traits>::Merge(const CaloSteppingActionT<Traits>& other
 
 template <class Traits>
 void CaloSteppingActionT<Traits>::fillHits(edm::PCaloHitContainer& cc, int type) {
+#ifdef EDM_ML_DEBUG
   edm::LogVerbatim("Step") << "CaloSteppingAction::fillHits for type "
                            << type << " with "
                            << slave_[type].get()->hits().size() << " hits";
+#endif
   cc = slave_[type].get()->hits();
   slave_[type].get()->Clean();
 }
 
 template <class Traits>
 void CaloSteppingActionT<Traits>::update(const BeginOfJob * job) {
+#ifdef EDM_ML_DEBUG
   edm::LogVerbatim("Step") << "CaloSteppingAction:: Enter BeginOfJob";
+#endif
 }
 
 //==================================================================== per RUN
 template <class Traits>
 void CaloSteppingActionT<Traits>::update(const BeginRunWrapper& run) {
 
+#ifdef EDM_ML_DEBUG
   int irun = run.getRunID();
   edm::LogVerbatim("Step") << "CaloSteppingAction:: Begin of Run = " << irun;
-
+#endif
   const auto& nameMap = VolumeWrapper::getVolumes();
     for (auto const& name : nameEBSD_) {
       for (const auto& itr : nameMap) {
@@ -176,9 +182,11 @@ void CaloSteppingActionT<Traits>::update(const BeginRunWrapper& run) {
 template <class Traits>
 void CaloSteppingActionT<Traits>::update(const BeginEventWrapper& evt) {
  
+#ifdef EDM_ML_DEBUG
   eventID_ = evt.getEventID();
   edm::LogVerbatim("Step") <<"CaloSteppingAction: Begin of event = " 
                            << eventID_;
+#endif
   for (int k=0; k<CaloSteppingActionT<Traits>::nSD_; ++k) {
     hitMap_[k].erase (hitMap_[k].begin(), hitMap_[k].end());
     slave_[k].get()->Initialize();
@@ -189,21 +197,31 @@ void CaloSteppingActionT<Traits>::update(const BeginEventWrapper& evt) {
 template <class Traits>
 void CaloSteppingActionT<Traits>::update(const StepWrapper& aStep) {
 
-  //  edm::LogVerbatim("Step") <<"CaloSteppingAction: At each Step";
+//edm::LogVerbatim("Step") <<"CaloSteppingAction: At each Step";
   NaNTrap(aStep);
   auto lv = aStep.getVolume();
   bool hc = (std::find(volHCSD_.begin(),volHCSD_.end(),lv)!=volHCSD_.end());
   bool eb = (std::find(volEBSD_.begin(),volEBSD_.end(),lv)!=volEBSD_.end());
   bool ee = (std::find(volEESD_.begin(),volEESD_.end(),lv)!=volEESD_.end());
   if  (hc || eb || ee) {
+//  edm::LogVerbatim("Step") << lv->GetName() << "  " << eb << ":" << ee << ":" << hc;
     double dEStep = aStep.getEnergyDeposit();
     double     time     = aStep.getTime()/nanosecond;
     int        primID   = aStep.getTrackID();
     bool       em       = aStep.getEM();
     if (hc) {
-      int depth = (aStep.getCopyNo(0))%10 + 1;
-      int lay   = (aStep.getCopyNo(0)/10)%100 + 1;
-      int det   = (aStep.getCopyNo(1))/1000;
+      std::pair<int,int> copies = aStep.getCopyNos();
+      int depth = (copies.first)%10 + 1;
+      int lay   = (copies.first/10)%100 + 1;
+      int det   = (copies.second)/1000;
+#ifdef EDM_ML_DEBUG
+      edm::LogVerbatim("Step") 
+        << "CaloSteppingAction: HCAL [0] " << aStep.getNameNumber(0).first
+        << ":" << aStep.getNameNumber(0).second << ":" << copies.first
+        << " [1] " << aStep.getNameNumber(1).first << ":" 
+        << aStep.getNameNumber(1).second << ":" << copies.second
+        << " Det:Layer:Depth " << det << ":" << lay << ":" << depth;
+#endif
       auto unitID = getDetIDHC(det, lay, depth, aStep.getPosition(false));
       if(unitID > 0 && dEStep > 0.0) {
         dEStep *= getBirkHC(dEStep, aStep.getStepLength(), aStep.getCharge(), aStep.getDensity());
@@ -212,13 +230,20 @@ void CaloSteppingActionT<Traits>::update(const StepWrapper& aStep) {
     } else {
       EcalBaseNumber theBaseNumber;
       int  size = aStep.getSize();
+#ifdef EDM_ML_DEBUG
+      edm::LogVerbatim("Step") << "CaloSteppingAction: ECAL size " << size;
+#endif
       if (theBaseNumber.getCapacity() < size ) theBaseNumber.setSize(size);
       //Get name and copy numbers
       if (size > 1) {
-        for (int ii = 0; ii < size ; ii++) {
-          const auto& nameNumber = aStep.getNameNumber(ii);
-          theBaseNumber.addLevel(nameNumber.first, nameNumber.second);
-        }
+        aStep.setNameNumber(theBaseNumber);
+#ifdef EDM_ML_DEBUG
+        for (int ii = 0; ii < size ; ii++) 
+          edm::LogVerbatim("Step") 
+            << "CaloSteppingAction: ECAL [" << ii << "] "
+            << theBaseNumber.getLevelName(ii) << ":" 
+	    << theBaseNumber.getCopyNumber(ii);
+#endif
       }
       auto unitID = (eb ? (ebNumberingScheme_->getUnitID(theBaseNumber)) :
                      (eeNumberingScheme_->getUnitID(theBaseNumber)));
@@ -245,9 +270,11 @@ void CaloSteppingActionT<Traits>::update(const StepWrapper& aStep) {
 template <class Traits>
 void CaloSteppingActionT<Traits>::update(const EndEventWrapper& evt) {
   ++count_;
+#ifdef EDM_ML_DEBUG
   // Fill event input 
   edm::LogVerbatim("Step") << "CaloSteppingAction: EndOfEvent " 
                            << evt.getEventID();
+#endif
 }
 
 template <class Traits>
@@ -376,9 +403,11 @@ double CaloSteppingActionT<Traits>::getBirkHC(double dEStep, double step, double
 template <class Traits>
 void CaloSteppingActionT<Traits>::saveHits(int type) {
 
+#ifdef EDM_ML_DEBUG
   edm::LogVerbatim("Step") << "CaloSteppingAction:: saveHits for type " 
                            << type << " with " << hitMap_[type].size()
                            << " hits";
+#endif
   slave_[type].get()->ReserveMemory(hitMap_[type].size());
   for (auto const& hit : hitMap_[type]) {
     slave_[type].get()->processHits(hit.second.getUnitID(),
