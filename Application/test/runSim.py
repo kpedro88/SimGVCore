@@ -123,6 +123,7 @@ if options.sim=="Geant4":
     process.g4SimHits.Physics.type = cms.string("SimG4Core/Physics/DummyPhysics")
     process.g4SimHits.Physics.DummyEMPhysics = cms.bool(False)
     process.g4SimHits.Watchers = cms.VPSet(scoring_)
+    process.MessageLogger.categories.append('Step')
 
 # modules for GeantV
 elif options.sim=="GeantV":
@@ -144,6 +145,7 @@ elif options.sim=="GeantV":
     process.psim = cms.Sequence(process.geantv)
 
     process.MessageLogger.categories.append('GeantVProducer')
+    process.MessageLogger.categories.append('Step')
     process.MessageLogger.cerr.GeantVProducer = cms.untracked.PSet(
         optionalPSet = cms.untracked.bool(True),
         limit = cms.untracked.int32(10000000),
