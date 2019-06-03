@@ -29,6 +29,7 @@ cmsrel CMSSW_10_2_0
 cd CMSSW_10_2_0/src
 cmsenv
 git cms-merge-topic kpedro88:GVPhysicsList
+git cms-addpkg SimG4Core SimG4CMS
 git clone git@github.com:kpedro88/SimGVCore.git -b SensDetTemplateWrapper
 cd SimGVCore
 git config core.sparseCheckout true
@@ -41,6 +42,7 @@ README.md
 EOF_SPARSE
 git read-tree -mu HEAD
 cd ..
+scram b disable-biglib
 scram b -j 8
 ```
 (Separate area needed due to conflicts between different versions of external dependencies for Geant4 vs. GeantV in CMSSW.)
