@@ -5,6 +5,7 @@
 
 //includes for GV
 #include "volumes/LogicalVolume.h"
+#include "Geant/SystemOfUnits.h"
 #include "volumes/UnplacedTrapezoid.h"
 
 namespace sim {
@@ -22,7 +23,7 @@ namespace sim {
 			}
 			double dz() const {
 				auto *solid = static_cast<const vecgeom::UnplacedTrapezoid*>(wrapped_->GetUnplacedVolume());
-				return solid->GetDz()/mm; // should one multiply by 2 here?
+				return solid->GetDz()/geant::units::mm; // should one multiply by 2 here?
 			}
 			
 		private:

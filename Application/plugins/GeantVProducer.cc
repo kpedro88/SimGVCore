@@ -45,7 +45,8 @@
 #include "SimGVCore/CaloGV/interface/CaloSteppingAction.h"
 #include "SimGVCore/Application/interface/CMSData.h"
 #include "SimGVCore/Application/interface/CMSApplication.h"
-#include "Geant/example/CMSPhysicsList.h"
+#include "SimGVCore/Application/interface/CMSPhysicsListX.h"
+//#include "Geant/example/CMSPhysicsList.h"
 #include "Geant/example/CMSDetectorConstruction.h"
 #include "Geant/UserFieldConstruction.h"
 #include "TGeoManager.h"
@@ -249,7 +250,7 @@ void GeantVProducer::initialize() const {
     fRunMgr->SetPhysicsInterface(new geantphysics::PhysicsProcessHandler(*fConfig));
 
     // Create user defined physics list for the full CMS application
-    geantphysics::PhysicsListManager::Instance().RegisterPhysicsList(new cmsapp::CMSPhysicsList(*fConfig));
+    geantphysics::PhysicsListManager::Instance().RegisterPhysicsList(new cmsapp::CMSPhysicsListX(*fConfig));
 
     // Detector construction
     auto detector_construction = new CMSDetectorConstruction(fRunMgr);

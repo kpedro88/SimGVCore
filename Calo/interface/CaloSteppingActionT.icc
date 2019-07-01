@@ -31,10 +31,10 @@ CaloSteppingActionT<Traits>::CaloSteppingActionT(const edm::ParameterSet &p) :
   nameHCSD_       = iC.getParameter<std::vector<std::string> >("HCSDNames");
   nameHitC_       = iC.getParameter<std::vector<std::string> >("HitCollNames");
   slopeLY_        = iC.getParameter<double>("SlopeLightYield");
-  birkC1EC_       = iC.getParameter<double>("BirkC1EC")*(g/(MeV*cm2));
+  birkC1EC_       = iC.getParameter<double>("BirkC1EC");
   birkSlopeEC_    = iC.getParameter<double>("BirkSlopeEC");
   birkCutEC_      = iC.getParameter<double>("BirkCutEC");
-  birkC1HC_       = iC.getParameter<double>("BirkC1HC")*(g/(MeV*cm2));
+  birkC1HC_       = iC.getParameter<double>("BirkC1HC");
   birkC2HC_       = iC.getParameter<double>("BirkC2HC");
   birkC3HC_       = iC.getParameter<double>("BirkC3HC");
 
@@ -197,18 +197,21 @@ void CaloSteppingActionT<Traits>::update(const BeginEventWrapper& evt) {
 template <class Traits>
 void CaloSteppingActionT<Traits>::update(const StepWrapper& aStep) {
 
-//edm::LogVerbatim("Step") <<"CaloSteppingAction: At each Step";
   NaNTrap(aStep);
   auto lv = aStep.getVolume();
   bool hc = (std::find(volHCSD_.begin(),volHCSD_.end(),lv)!=volHCSD_.end());
   bool eb = (std::find(volEBSD_.begin(),volEBSD_.end(),lv)!=volEBSD_.end());
   bool ee = (std::find(volEESD_.begin(),volEESD_.end(),lv)!=volEESD_.end());
   if  (hc || eb || ee) {
-//  edm::LogVerbatim("Step") << lv->GetName() << "  " << eb << ":" << ee << ":" << hc;
     double dEStep = aStep.getEnergyDeposit();
-    double     time     = aStep.getTime()/nanosecond;
-    int        primID   = aStep.getTrackID();
-    bool       em       = aStep.getEM();
+    double time   = aStep.getTime();
+    int    primID = aStep.getTrackID();
+    bool   em     = aStep.getEM();
+#ifdef EDM_ML_DEBUG
+      edm::LogVerbatim("Step") 
+        << "CaloSteppingAction: dE " << dEStep << " T " << time << " Track "
+        << primID << " EM " << em;
+#endif
     if (hc) {
       std::pair<int,int> copies = aStep.getCopyNos();
       int depth = (copies.first)%10 + 1;
@@ -370,17 +373,19 @@ double CaloSteppingActionT<Traits>::getBirkL3(double dEStep, double step,
     }
 #ifdef EDM_ML_DEBUG
     edm::LogVerbatim("Step") << "CaloSteppingAction::getBirkL3 Charge "
-                             << charge << " dE/dx " << dedx
-                             << " Birk Const " << rkb << " Weight = " << weight
-                             << " dE " << dEStep << " step " << step;
+                             << charge << " dE/dx " << dedx << " Birk Const " 
+			     << birkC1EC_ << ":" << density << ":" << rkb << ":"
+			     << birkSlopeEC_ << ":" << birkCutEC_  
+			     << " Weight = " << weight << " dE " << dEStep 
+			     << " step " << step;
 #endif
   }
   return weight;
 }
 
 template <class Traits>
-double CaloSteppingActionT<Traits>::getBirkHC(double dEStep, double step, double charge,
-                                     double density) const {
+double CaloSteppingActionT<Traits>::getBirkHC(double dEStep, double step, 
+                                     double charge,  double density) const {
 
   double weight = 1.;
   if (charge != 0. && step > 0.) {
@@ -391,8 +396,9 @@ double CaloSteppingActionT<Traits>::getBirkHC(double dEStep, double step, double
     weight = 1./(1.+rkb*dedx+c*dedx*dedx);
 #ifdef EDM_ML_DEBUG
     edm::LogVerbatim("Step") << "CaloSteppingAction::getBirkHC Charge " 
-                             << charge << " dE/dx " << dedx 
-                             << " Birk Const " << rkb << ", " << c 
+                             << charge << " dE/dx " << dedx  << " Birk Const "
+			     << birkC1HC_ << ":" << density << ":" << rkb << ":"
+			     << birkC2HC_ << ":" << c << ":" << birkC3HC_
                              << " Weight = " << weight << " dE "
                              << dEStep;
 #endif
@@ -411,8 +417,8 @@ void CaloSteppingActionT<Traits>::saveHits(int type) {
   slave_[type].get()->ReserveMemory(hitMap_[type].size());
   for (auto const& hit : hitMap_[type]) {
     slave_[type].get()->processHits(hit.second.getUnitID(),
-                                    hit.second.getEM()/GeV, 
-                                    hit.second.getHadr()/GeV,
+                                    0.001*hit.second.getEM(), 
+                                    0.001*hit.second.getHadr(),
                                     hit.second.getTimeSlice(),
                                     hit.second.getTrackID(),
                                     hit.second.getDepth());

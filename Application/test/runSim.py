@@ -123,6 +123,29 @@ if options.sim=="Geant4":
     process.g4SimHits.Physics.type = cms.string("SimG4Core/Physics/DummyPhysics")
     process.g4SimHits.Physics.DummyEMPhysics = cms.bool(False)
     process.g4SimHits.Watchers = cms.VPSet(scoring_)
+    process.g4SimHits.Physics.CutsPerRegion = False
+    process.g4SimHits.Physics.CutsOnProton  = False
+    process.g4SimHits.Physics.DefaultCutValue = 0.1
+    process.g4SimHits.StackingAction.TrackNeutrino = True
+    process.g4SimHits.StackingAction.MaxTrackTime = 2000.0
+    process.g4SimHits.StackingAction.MaxTrackTimes = []
+    process.g4SimHits.StackingAction.MaxTimeNames = []
+    process.g4SimHits.StackingAction.DeadRegions = []
+    process.g4SimHits.StackingAction.CriticalEnergyForVacuum = 0
+    process.g4SimHits.StackingAction.KillGamma     = False
+    process.g4SimHits.StackingAction.RusRoGammaEnergyLimit = 0
+    process.g4SimHits.StackingAction.RusRoNeutronEnergyLimit = 0
+    process.g4SimHits.SteppingAction.MaxTrackTime = 2000.0
+    process.g4SimHits.SteppingAction.MaxTrackTimes = []
+    process.g4SimHits.SteppingAction.MaxTimeNames = []
+    process.g4SimHits.SteppingAction.DeadRegions = []
+    process.g4SimHits.SteppingAction.CriticalEnergyForVacuum = 0
+    process.g4SimHits.MagneticField.ConfGlobalMFM.OCMS.StepperParam.MinimumEpsilonStep = 0.001
+    process.g4SimHits.MagneticField.ConfGlobalMFM.OCMS.StepperParam.MaximumEpsilonStep = 0.001
+    process.g4SimHits.MagneticField.ConfGlobalMFM.OCMS.StepperParam.EnergyThSimple = 0
+    process.g4SimHits.MagneticField.ConfGlobalMFM.OCMS.StepperParam.DeltaChordSimple = 0.001
+    process.g4SimHits.MagneticField.ConfGlobalMFM.OCMS.StepperParam.DeltaOneStepSimple = 0.001
+    process.g4SimHits.MagneticField.ConfGlobalMFM.OCMS.StepperParam.DeltaIntersectionSimple = 0.0001
     process.MessageLogger.categories.append('Step')
 
 # modules for GeantV

@@ -26,7 +26,7 @@ process.options = cms.untracked.PSet(
 
 # Production Info
 process.configurationMetadata = cms.untracked.PSet(
-    annotation = cms.untracked.string('SingleElectronPt10_pythia8_cfi nevts:10'),
+    annotation = cms.untracked.string('SingleElectronE50_pythia8_cfi nevts:100'),
     name = cms.untracked.string('Applications'),
     version = cms.untracked.string('$Revision: 1.19 $')
 )
@@ -54,15 +54,15 @@ process.RAWSIMoutput = cms.OutputModule("PoolOutputModule",
 # Other statements
 process.genstepfilter.triggerConditions=cms.vstring("generation_step")
 
-process.generator = cms.EDFilter("Pythia8PtGun",
+process.generator = cms.EDFilter("Pythia8EGun",
     PGunParameters = cms.PSet(
         AddAntiParticle = cms.bool(False),
-        MinEta = cms.double(-5.0),
-        MaxEta = cms.double(5.0),
+        MinEta = cms.double(-3.0),
+        MaxEta = cms.double(3.0),
         MinPhi = cms.double(-3.14159265359),
         MaxPhi = cms.double(3.14159265359),
-        MinPt = cms.double(options.pt),
-        MaxPt = cms.double(options.pt),
+        MinE = cms.double(options.pt),
+        MaxE = cms.double(options.pt),
         ParticleID = cms.vint32([options._pdgid]*int(options.mult))
     ),
     PythiaParameters = cms.PSet(
