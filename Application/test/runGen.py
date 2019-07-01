@@ -61,8 +61,8 @@ process.generator = cms.EDFilter("Pythia8EGun",
         MaxEta = cms.double(3.0),
         MinPhi = cms.double(-3.14159265359),
         MaxPhi = cms.double(3.14159265359),
-        MinE = cms.double(options.pt),
-        MaxE = cms.double(options.pt),
+        MinE = cms.double(options.energy),
+        MaxE = cms.double(options.energy),
         ParticleID = cms.vint32([options._pdgid]*int(options.mult))
     ),
     PythiaParameters = cms.PSet(

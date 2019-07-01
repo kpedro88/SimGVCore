@@ -4,7 +4,7 @@ from FWCore.ParameterSet.VarParsing import VarParsing
 options = VarParsing("analysis")
 options.register("particle", "electron", VarParsing.multiplicity.singleton, VarParsing.varType.string)
 options.register("mult", 1, VarParsing.multiplicity.singleton, VarParsing.varType.int) # number of particles
-options.register("pt", 1, VarParsing.multiplicity.singleton, VarParsing.varType.float)
+options.register("energy", 1, VarParsing.multiplicity.singleton, VarParsing.varType.float)
 options.register("sim", "Geant4", VarParsing.multiplicity.singleton, VarParsing.varType.string)
 options.register("threads", 1, VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.register("streams", 0, VarParsing.multiplicity.singleton, VarParsing.varType.int)
@@ -27,7 +27,7 @@ if options.year!=2018 and options.year!=2023:
 if options.maxEventsIn==-1: options.maxEventsIn = options.maxEvents
 
 # basic name definition
-nametmp = options.particle+"_pt"+str(options.pt)+"_mult"+str(options.mult)
+nametmp = options.particle+"_energy"+str(options.energy)+"_mult"+str(options.mult)
 # gen name definition
 options._genname = "gen_"+nametmp+"_n"+str(options.maxEventsIn)
 # sim name definition

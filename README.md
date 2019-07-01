@@ -53,7 +53,7 @@ scram b -j 8
 GEN parameters (`runGen.py`):
 * `particle`: electron or photon
 * `mult`: number of particles
-* `pt`: transverse momentum of particles
+* `energy`: energy of particles
 * `maxEvents`: number of events
 
 SIM parameters (`runSim.py`):
@@ -65,19 +65,3 @@ SIM parameters (`runSim.py`):
 * `maxEventsIn`: number of input events (in case running over subset of generated events)
 
 GEN and SIM are run separately so Geant4 and GeantV can process the exact same gen events and report only the CPU time used in simulation.
-
-## Old tests
-
-Test GEN-SIM together:
-```
-cd $CMSSW_BASE/src/SimGVCore/Application/test
-cmsRun SingleElectronPt10_pythia8_cfi_GEN-SIM.py
-```
-
-Scaling test (GEN, SIM separately):
-```
-cd $CMSSW_BASE/src/SimGVCore/Application/test
-cmsRun SingleElectronPt50_pythia8_cfi_GENonly.py
-./testMT.sh >& log_test.log
-./parseMT.sh log_test.log >& log_parsed.log
-```
