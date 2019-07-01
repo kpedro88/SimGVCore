@@ -6,6 +6,7 @@
 //includes for G4
 #include "G4LogicalVolume.hh"
 #include "G4LogicalVolumeStore.hh"
+#include "G4SystemOfUnits.hh"
 #include "G4Trap.hh"
 
 namespace sim {
@@ -25,7 +26,7 @@ namespace sim {
 			}
 			double dz() const {
 				G4Trap* solid = static_cast<G4Trap*>(wrapped_->GetSolid());
-				return 2*solid->GetZHalfLength();
+				return 2*solid->GetZHalfLength()/CLHEP::mm;
 			}
 			
 		private:
