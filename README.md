@@ -17,6 +17,7 @@ ln -s install-geant/* .
 cd $CMSSW_BASE/src
 cmsenv
 git cms-init
+git cms-merge-topic kpedro88:GVGeometry102X
 git clone git@github.com:kpedro88/SimGVCore.git -b SensDetTemplateWrapper
 scram b -j 8
 ```
