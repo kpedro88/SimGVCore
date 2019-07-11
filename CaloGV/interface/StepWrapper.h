@@ -19,7 +19,7 @@ namespace sim {
 			StepWrapper(const geant::Track* tmp) : track_(tmp) {}
 			const vecgeom::LogicalVolume* getVolume() const { return track_->GetVolume(); }
 			double getEnergyDeposit() const { return track_->Edep()/geant::units::MeV; }
-			double getTime() const { return track_->Time()/geant::units::kCLight/geant::units::nanosecond; }
+			double getTime() const { return track_->GlobalTime()/geant::units::nanosecond; }
 			int getTrackID() const { return track_->Particle(); }
 			bool getEM() const { 
 				const geantphysics::Particle *part = geantphysics::Particle::GetParticleByInternalCode(track_->GVcode());
