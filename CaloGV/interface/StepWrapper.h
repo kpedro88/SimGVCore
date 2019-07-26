@@ -63,19 +63,6 @@ namespace sim {
 				double pz = track_->Pz()/geant::units::MeV;
 				return math::XYZVectorD(px,py,pz);
 			}
-			std::string getName(const std::string n) const {
-			  std::string name;
-			  std::string::size_type pos1 = n.find(':');
-			  std::string::size_type pos2 = n.rfind('_');
-			  if (pos1==std::string::npos) {
-			    if (pos2==std::string::npos) name = n;
-			    else name = std::string(n,0,pos2);
-			  } else {
-			    if (pos2==std::string::npos) name = std::string(n,pos1+1,n.size()-pos1-1);
-			    else name = std::string(n,pos1+1,pos2-pos1-1);
-			  }
-			  return name;
-			}
 			std::pair<std::string,int> getNameNumber(int level) const {
 				auto const touch = track_->Path(); // returns vecgeom::NavigationState*
 				int theSize = touch->GetLevel();
@@ -83,13 +70,13 @@ namespace sim {
 				return std::make_pair(placed->GetName(), placed->GetCopyNo());
 			}
 			void setNameNumber(EcalBaseNumber & baseNumber) const {
-			        int size = getSize();
+				int size = getSize();
 				if (baseNumber.getCapacity() < size ) baseNumber.setSize(size);
 				auto const touch = track_->Path();
 				int theSize = touch->GetLevel();
 				for (int ii = 0; ii < size-1 ; ii++) {
-				  auto const placed = touch->At(theSize-ii);
-				  baseNumber.addLevel(placed->GetName(), placed->GetCopyNo());
+					auto const placed = touch->At(theSize-ii);
+					baseNumber.addLevel(placed->GetName(), placed->GetCopyNo());
 				}
 				baseNumber.addLevel("World", 0);
 			}
