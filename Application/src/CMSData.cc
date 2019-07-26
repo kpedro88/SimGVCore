@@ -7,18 +7,20 @@
 //------------------------------------------------------------------------------------------
 //implementation of per-event data
 
-CMSDataPerEvent::CMSDataPerEvent() : fSD(nullptr) { }
+CMSDataPerEvent::CMSDataPerEvent() : fSD(nullptr), fInitialized(false) { }
 
-CMSDataPerEvent::CMSDataPerEvent(const edm::ParameterSet& p) : fSD(std::make_unique<CaloSteppingAction>(p)) { }
+CMSDataPerEvent::CMSDataPerEvent(const edm::ParameterSet& p) : fSD(std::make_unique<CaloSteppingAction>(p)), fInitialized(false) { }
 
 //SD class needs custom copy via Clone() function (contains unique_ptrs)
-CMSDataPerEvent::CMSDataPerEvent(const CMSDataPerEvent& orig) : fSD(orig.fSD ? std::make_unique<CaloSteppingAction>(orig.fSD->GetParams()) : nullptr) { }
+CMSDataPerEvent::CMSDataPerEvent(const CMSDataPerEvent& orig) : fSD(orig.fSD ? std::make_unique<CaloSteppingAction>(orig.fSD->GetParams()) : nullptr), fInitialized(false) { }
 
 //pass calls through to SD class
 
 void CMSDataPerEvent::BeginRun() {
+	if(fInitialized) return;
 	GVRun dummyRun;
 	fSD->update(&dummyRun);
+	fInitialized = true;
 }
 
 void CMSDataPerEvent::BeginEvent(geant::Event* event) {

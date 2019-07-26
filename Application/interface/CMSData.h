@@ -43,6 +43,7 @@ class CMSDataPerEvent : public GVScoring {
 	private:
 		//member variables
 		std::unique_ptr<CaloSteppingAction> fSD;
+		bool fInitialized;
 };
 
 class CMSDataPerThread : public GVScoring {
