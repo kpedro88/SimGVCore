@@ -14,6 +14,7 @@ namespace sim {
 			StepWrapper(const T tmp) = delete;
 			const V* getVolume() const = delete;
 			double getEnergyDeposit() const = delete;
+			double addEnergy() const = delete;
 			double getTime() const = delete;
 			int getTrackID() const = delete;
 			bool getEM() const = delete;
@@ -24,6 +25,7 @@ namespace sim {
 			double getDz() const = delete;
 			double getRadlen() const = delete;
 			int getCopyNo(int level) const = delete;
+			uint32_t getCopy() const = delete;
 			std::pair<int,int> getCopyNos() const = delete;
 			math::XYZVectorD getPosition(bool) const = delete;
 			math::XYZVectorD getMomentum() const = delete;

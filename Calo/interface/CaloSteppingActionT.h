@@ -15,6 +15,7 @@
 #include "SimG4Core/Watcher/interface/SimWatcherFactory.h"
 
 #include "SimDataFormats/CaloHit/interface/PCaloHitContainer.h"
+#include "SimDataFormats/CaloHit/interface/PassiveHit.h"
 #include "SimDataFormats/SimHitMaker/interface/CaloSlaveSD.h"
 
 #include "SimGVCore/Calo/interface/HcalNumberingScheme.h"
@@ -30,6 +31,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <utility>
 
 template <class Traits>
 class CaloSteppingActionT : public SimProducer,
@@ -69,7 +71,7 @@ public:
 
 private:
   void fillHits(edm::PCaloHitContainer& cc, int type);
-
+  void fillPassiveHits(edm::PassiveHitContainer &cc);
   // subordinate functions with unified interfaces
   void update(const BeginRunWrapper& run);
   void update(const BeginEventWrapper& evt);
@@ -98,13 +100,16 @@ private:
 
   std::vector<std::string>              nameEBSD_, nameEESD_, nameHCSD_;
   std::vector<std::string>              nameHitC_;
-  std::vector<const Volume*>   volEBSD_, volEESD_, volHCSD_;
-  std::map<const Volume*,double> xtalMap_;
-  int                                   count_, eventID_;
+  std::vector<const Volume*>            volEBSD_, volEESD_, volHCSD_;
+  std::map<const Volume*,double>        xtalMap_;
+  std::map<const Volume*,std::string>   mapLV_;
+  int                                   allSteps_, count_, eventID_;
   double                                slopeLY_, birkC1EC_, birkSlopeEC_;
   double                                birkCutEC_, birkC1HC_, birkC2HC_;
   double                                birkC3HC_;
   std::map<std::pair<int,CaloHitID>,CaloGVHit> hitMap_[nSD_];
+  typedef std::tuple<const Volume*, uint32_t, int> PassiveKey;
+  std::map<passiveKey, std::array<double, 3> > store_;
 };
 
 #endif
