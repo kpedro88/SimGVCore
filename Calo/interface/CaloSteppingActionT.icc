@@ -162,7 +162,7 @@ void CaloSteppingActionT<Traits>::fillPassiveHits(edm::PassiveHitContainer& cc) 
                            << store_.size() << " hits";
 #endif
   for (const auto& element : store_) {
-    auto lv = (element.first).first;
+    auto lv = std::get<0>(element.first);
     auto it = mapLV_.find(lv);
     if (it != mapLV_.end()) {
       PassiveHit hit(it->second, std::get<1>(element.first), (element.second)[1], (element.second)[2], (element.second)[0], std::get<2>(element.first));
