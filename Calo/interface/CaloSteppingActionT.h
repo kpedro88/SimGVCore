@@ -109,7 +109,7 @@ private:
   double                                birkC3HC_;
   std::map<std::pair<int,CaloHitID>,CaloGVHit> hitMap_[nSD_];
   typedef std::tuple<const Volume*, uint32_t, int> PassiveKey;
-  std::map<passiveKey, std::array<double, 3> > store_;
+  std::map<PassiveKey, std::array<double, 3> > store_;
 };
 
 #endif
