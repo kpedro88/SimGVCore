@@ -30,6 +30,7 @@ CaloSteppingActionT<Traits>::CaloSteppingActionT(const edm::ParameterSet &p) :
   nameEESD_       = iC.getParameter<std::vector<std::string> >("EESDNames");
   nameHCSD_       = iC.getParameter<std::vector<std::string> >("HCSDNames");
   nameHitC_       = iC.getParameter<std::vector<std::string> >("HitCollNames");
+  allSteps_       = iC.getParameter<int>("AllSteps");
   slopeLY_        = iC.getParameter<double>("SlopeLightYield");
   birkC1EC_       = iC.getParameter<double>("BirkC1EC");
   birkSlopeEC_    = iC.getParameter<double>("BirkSlopeEC");
@@ -70,6 +71,12 @@ CaloSteppingActionT<Traits>::CaloSteppingActionT(const edm::ParameterSet &p) :
     slave_[k] = std::make_unique<CaloSlaveSD>(nameHitC_[k]);
     produces<edm::PCaloHitContainer>(nameHitC_[k]);
   }
+  if (allSteps_ > 0) 
+    produces<edm::PassiveHitContainer>("AllPassiveHits");
+#ifdef EDM_ML_DEBUG
+  edm::LogVerbatim("Step") << "CaloSteppingAction:: All Steps Flag " 
+  			   << allSteps_ << " for passive hits";
+#endif
 } 
 
 template <class Traits>
@@ -86,6 +93,11 @@ void CaloSteppingActionT<Traits>::produce(edm::Event& e, const edm::EventSetup&)
     auto product = std::make_unique<edm::PCaloHitContainer>();
     fillHits(*product,k);
     e.put(std::move(product),nameHitC_[k]);
+  }
+  if (allSteps_ > 0) {
+    std::unique_ptr<edm::PassiveHitContainer> hgcPH(new edm::PassiveHitContainer);
+    fillPassiveHits(*hgcPH);
+    e.put(std::move(hgcPH), "AllPassiveHits");
   }
 }
 
@@ -106,6 +118,28 @@ bool CaloSteppingActionT<Traits>::Merge(const CaloSteppingActionT<Traits>& other
       else hitMap_[k][evID] = hit.second;
     }
   }
+  //merge the store information
+  if (allSteps_ > 0) {
+#ifdef EDM_ML_DEBUG
+    int maxTrackID = 0;
+    for (const auto& hit : store_)
+      maxTrackID = std::max(maxTrackID,hit.first.second.second);
+#endif
+    for (const auto& hit : other.store_) {
+      auto evID = hit.first;
+#ifdef EDM_ML_DEBUG
+      auto it = store_.find(evID);
+      if (it != store_.end()) {
+        ++maxTrackID;
+        edm::LogVerbatim("Step") << "Duplicate ID " << evID.first << ":" 
+                                 << evID.second.first << " Track ID changed from "
+                                 << evID.second.second << " to " << maxTrackID;
+	evID = std::make_pair(evID.first,std::make_pair(evID.second.first,maxTrackID));
+      }
+#endif
+      store_[evID] = hit.second;
+    }
+  }
   return true;
 }
 
@@ -118,6 +152,24 @@ void CaloSteppingActionT<Traits>::fillHits(edm::PCaloHitContainer& cc, int type)
 #endif
   cc = slave_[type].get()->hits();
   slave_[type].get()->Clean();
+}
+
+
+template <class Traits>
+void CaloSteppingActionT<Traits>::fillPassiveHits(edm::PassiveHitContainer& cc) {
+#ifdef EDM_ML_DEBUG
+  edm::LogVerbatim("Step") << "CaloSteppingAction::fillPassiveHits with "
+                           << store_.size() << " hits";
+#endif
+  for (const auto& element : store_) {
+    auto lv = (element.first).first;
+    auto it = mapLV_.find(lv);
+    if (it != mapLV_.end()) {
+      PassiveHit hit(
+                     it->second, (element.first).second.first, (element.second)[1], (element.second)[2], (element.second)[0], (element.first).second.second);
+      cc.emplace_back(hit);
+    }
+  }
 }
 
 template <class Traits>
@@ -165,6 +217,10 @@ void CaloSteppingActionT<Traits>::update(const BeginRunWrapper& run) {
           volHCSD_.emplace_back(itr.second);
       }
     }
+    if (allSteps_ > 0) {
+      for (const auto& itr : nameMap) 
+        mapLV_[itr.second] = itr.first;
+    }
 #ifdef EDM_ML_DEBUG
   edm::LogVerbatim("Step") << volEBSD_.size() << " logical volumes for EB SD";
   for (unsigned int k=0; k<volEBSD_.size(); ++k)
@@ -191,6 +247,8 @@ void CaloSteppingActionT<Traits>::update(const BeginEventWrapper& evt) {
     hitMap_[k].erase (hitMap_[k].begin(), hitMap_[k].end());
     slave_[k].get()->Initialize();
   }
+  if (allSteps_ > 0)
+    store_.erase(store_.begin(), store_.end());
 }
 
 //=================================================================== each STEP
@@ -264,6 +322,43 @@ void CaloSteppingActionT<Traits>::update(const StepWrapper& aStep) {
         dEStep        *= (getBirkL3(dEStep,aStep.getStepLength(), aStep.getCharge(), aStep.getDensity()) * 
                           curve_LY(crystalLength,crystalDepth));
         fillHit(unitID, dEStep, time, primID, depth, em, (eb ? 0 : 1));
+      }
+    }
+  }
+
+  if (allSteps_ > 0) {
+    auto it = mapLV_.find(lv);
+    double energy = aStep.getEnergyDeposit() + aStep.addEnergy();
+    double time   = aStep.getTime();
+    int    trackId= aStep.getTrackID();
+    uint32_t copy = aStep.getCopy();
+    if (it != mapLV_.end()) {
+      std::pair<const Volume*, std::pair<uint32_t,int> > key(lv,std::make_pair(copy, trackId));
+      if (allSteps_ > 1) {
+        bool flag(true);
+        while (store_.find(key) != store_.end()) {
+          copy += 1000000;
+          key = std::make_pair(lv, std::make_pair(copy, trackId));
+          if (copy > 100000000) {
+            flag = false;
+            break;
+          }
+        }
+        if (flag) {
+          store_[key] = {{time, energy, energy}};
+        } else {
+          auto itr = store_.find(key);
+          (itr->second)[1] += energy;
+          (itr->second)[2] += energy;
+        }
+      } else {
+        auto itr = store_.find(key);
+        if (itr == store_.end()) {
+          store_[key] = {{time, energy, energy}};
+        } else {
+          (itr->second)[1] += energy;
+          (itr->second)[2] += energy;
+        }
       }
     }
   }

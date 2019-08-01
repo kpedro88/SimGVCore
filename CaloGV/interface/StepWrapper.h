@@ -19,6 +19,7 @@ namespace sim {
 			StepWrapper(const geant::Track* tmp) : track_(tmp) {}
 			const vecgeom::LogicalVolume* getVolume() const { return track_->GetVolume(); }
 			double getEnergyDeposit() const { return track_->Edep()/geant::units::MeV; }
+			double addEnergy() const { return ((track_->Status() == geant::kExitingSetup) ? track_->Ekin()/geant::units::MeV : 0); }
 			double getTime() const { return track_->GlobalTime()/geant::units::nanosecond; }
 			int getTrackID() const { return track_->Particle(); }
 			bool getEM() const { 
@@ -44,6 +45,11 @@ namespace sim {
 				auto const touch = track_->Path(); // returns vecgeom::NavigationState*
 				int theSize = touch->GetLevel();
 				return touch->At(theSize-level)->GetCopyNo();
+			}
+			uint32_t getCopy() const {
+				auto const touch = track_->Path(); // returns vecgeom::NavigationState*
+				int theSize = touch->GetLevel();
+				return ((theSize<1) ? static_cast<uint32_t>(touch->At(theSize)->GetCopyNo()) : static_cast<uint32_t>(touch->At(theSize)->GetCopyNo()+1000*touch->At(theSize-1)->GetCopyNo()));
 			}
 			std::pair<int,int> getCopyNos() const {
 				auto const touch = track_->Path(); // returns vecgeom::NavigationState*
