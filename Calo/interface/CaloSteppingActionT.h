@@ -31,6 +31,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <utility>
 
 template <class Traits>
 class CaloSteppingActionT : public SimProducer,
@@ -107,7 +108,8 @@ private:
   double                                birkCutEC_, birkC1HC_, birkC2HC_;
   double                                birkC3HC_;
   std::map<std::pair<int,CaloHitID>,CaloGVHit> hitMap_[nSD_];
-  std::map<std::pair<const Volume*, std::pair<uint32_t, int> >, std::array<double, 3> > store_;
+  typedef std::tuple<const Volume*, uint32_t, int> PassiveKey;
+  std::map<passiveKey, std::array<double, 3> > store_;
 };
 
 #endif

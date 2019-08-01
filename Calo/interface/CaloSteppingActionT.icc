@@ -95,7 +95,7 @@ void CaloSteppingActionT<Traits>::produce(edm::Event& e, const edm::EventSetup&)
     e.put(std::move(product),nameHitC_[k]);
   }
   if (allSteps_ > 0) {
-    std::unique_ptr<edm::PassiveHitContainer> hgcPH(new edm::PassiveHitContainer);
+    auto hgcPH = std::make_unique<edm::PassiveHitContainer>();
     fillPassiveHits(*hgcPH);
     e.put(std::move(hgcPH), "AllPassiveHits");
   }
@@ -134,7 +134,7 @@ bool CaloSteppingActionT<Traits>::Merge(const CaloSteppingActionT<Traits>& other
         edm::LogVerbatim("Step") << "Duplicate ID " << evID.first << ":" 
                                  << evID.second.first << " Track ID changed from "
                                  << evID.second.second << " to " << maxTrackID;
-	evID = std::make_pair(evID.first,std::make_pair(evID.second.first,maxTrackID));
+        evID = std::make_tuple(std::get<0>(evID),std::get<1>(evID),maxTrackID);
       }
 #endif
       store_[evID] = hit.second;
@@ -165,8 +165,7 @@ void CaloSteppingActionT<Traits>::fillPassiveHits(edm::PassiveHitContainer& cc) 
     auto lv = (element.first).first;
     auto it = mapLV_.find(lv);
     if (it != mapLV_.end()) {
-      PassiveHit hit(
-                     it->second, (element.first).second.first, (element.second)[1], (element.second)[2], (element.second)[0], (element.first).second.second);
+      PassiveHit hit(it->second, std::get<1>(element.first), (element.second)[1], (element.second)[2], (element.second)[0], std::get<2>(element.first));
       cc.emplace_back(hit);
     }
   }
@@ -333,12 +332,12 @@ void CaloSteppingActionT<Traits>::update(const StepWrapper& aStep) {
     int    trackId= aStep.getTrackID();
     uint32_t copy = aStep.getCopy();
     if (it != mapLV_.end()) {
-      std::pair<const Volume*, std::pair<uint32_t,int> > key(lv,std::make_pair(copy, trackId));
+      PassiveKey key(std::make_tuple(lv, copy, trackId));
       if (allSteps_ > 1) {
         bool flag(true);
         while (store_.find(key) != store_.end()) {
           copy += 1000000;
-          key = std::make_pair(lv, std::make_pair(copy, trackId));
+          key = std::make_tuple(lv, copy, trackId);
           if (copy > 100000000) {
             flag = false;
             break;
