@@ -181,9 +181,9 @@ void CaloSteppingActionT<Traits>::update(const BeginRunWrapper& run) {
 //=================================================================== per EVENT
 template <class Traits>
 void CaloSteppingActionT<Traits>::update(const BeginEventWrapper& evt) {
+  eventID_ = evt.getEventID();
  
 #ifdef EDM_ML_DEBUG
-  eventID_ = evt.getEventID();
   edm::LogVerbatim("Step") <<"CaloSteppingAction: Begin of event = " 
                            << eventID_;
 #endif
