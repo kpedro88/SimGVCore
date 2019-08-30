@@ -74,6 +74,7 @@ scoring_ = cms.PSet(
         BirkC1HC        = cms.double(0.0052),
         BirkC2HC        = cms.double(0.142),
         BirkC3HC        = cms.double(1.75),
+        TimeSliceUnit   = cms.untracked.double(0.001),
         HitCollNames = cms.vstring('EcalHitsEB1','EcalHitsEE1','HcalHits1'),
         EtaTable        = cms.vdouble(0.000, 0.087, 0.174, 0.261, 0.348,
                                       0.435, 0.522, 0.609, 0.696, 0.783,

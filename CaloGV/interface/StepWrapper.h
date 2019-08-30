@@ -20,6 +20,10 @@ namespace sim {
 			const vecgeom::LogicalVolume* getVolume() const { return track_->GetVolume(); }
 			double getEnergyDeposit() const { return track_->Edep()/geant::units::MeV; }
 			double addEnergy() const { return ((track_->Status() == geant::kExitingSetup) ? track_->Ekin()/geant::units::MeV : 0); }
+			int getPDGId() const {
+				const geantphysics::Particle *part = geantphysics::Particle::GetParticleByInternalCode(track_->GVcode());
+				return part->GetPDGCode();
+			}
 			double getTime() const { return track_->GlobalTime()/geant::units::nanosecond; }
 			int getTrackID() const { return track_->Particle(); }
 			bool getEM() const { 

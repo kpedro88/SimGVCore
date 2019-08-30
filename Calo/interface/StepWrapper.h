@@ -15,6 +15,7 @@ namespace sim {
 			const V* getVolume() const = delete;
 			double getEnergyDeposit() const = delete;
 			double addEnergy() const = delete;
+			int getPDGId() const = delete;
 			double getTime() const = delete;
 			int getTrackID() const = delete;
 			bool getEM() const = delete;
