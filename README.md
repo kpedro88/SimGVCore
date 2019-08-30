@@ -18,7 +18,7 @@ cd $CMSSW_BASE/src
 cmsenv
 git cms-init
 git cms-merge-topic kpedro88:GVGeometry102X
-git cms-merge-topic kpedro88:GVPassiveHit
+git cms-merge-topic -u kpedro88:GVPassiveHit
 git clone git@github.com:kpedro88/SimGVCore.git -b SensDetTemplateWrapper
 scram b -j 8
 ```
@@ -31,7 +31,7 @@ cmsrel CMSSW_10_2_0
 cd CMSSW_10_2_0/src
 cmsenv
 git cms-merge-topic kpedro88:GVPhysicsList
-git cms-merge-topic kpedro88:GVPassiveHit
+git cms-merge-topic -u kpedro88:GVPassiveHit
 git cms-addpkg SimG4Core SimG4CMS
 git clone git@github.com:kpedro88/SimGVCore.git -b SensDetTemplateWrapper
 cd SimGVCore
