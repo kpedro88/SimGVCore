@@ -20,6 +20,7 @@ namespace sim {
 			const G4LogicalVolume* getVolume() const { return step_->GetPreStepPoint()->GetPhysicalVolume()->GetLogicalVolume(); }
 			double getEnergyDeposit() const { return step_->GetTotalEnergyDeposit()/CLHEP::MeV; }
 			double addEnergy() const { return (((step_->GetPostStepPoint() == nullptr) || (step_->GetTrack()->GetNextVolume() == nullptr)) && (step_->IsLastStepInVolume())) ? (step_->GetPreStepPoint()->GetKineticEnergy()/CLHEP::MeV) : 0.0; }
+			int getPDGId() const { return step_->GetTrack()->GetDefinition()->GetPDGEncoding(); }
 			double getTime() const { return step_->GetTrack()->GetGlobalTime()/CLHEP::nanosecond; }
 			int getTrackID() const { return step_->GetTrack()->GetTrackID(); }
 			bool getEM() const { return G4TrackToParticleID::isGammaElectronPositron(step_->GetTrack()); }
