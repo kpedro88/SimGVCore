@@ -26,5 +26,3 @@ for ((th=1;th<=$NCPU;th++)); do
 		exit $TESTEXIT
 	fi
 done
-
-./cleanupTest.sh -t $TESTNUM
