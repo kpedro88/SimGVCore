@@ -113,7 +113,7 @@ scoring_ = cms.PSet(
 )
 
 # modules for Geant4
-if options.sim=="Geant4":
+if options.sim=="G4":
     # set a constant magnetic field
     process.load("MagneticField.Engine.uniformMagneticField_cfi")
     process.UniformMagneticFieldESProducer.ZFieldInTesla = cms.double(3.8)
@@ -151,7 +151,7 @@ if options.sim=="Geant4":
     process.MessageLogger.categories.append('Step')
 
 # modules for GeantV
-elif options.sim=="GeantV":
+elif options.sim=="GV":
     # this converts the geometry into TGeoManager for GeantV
     process.TGeoMgrFromDdd =  cms.ESProducer("TGeoMgrFromDdd",
         verbose = cms.untracked.bool(False),

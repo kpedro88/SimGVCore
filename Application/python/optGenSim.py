@@ -5,7 +5,7 @@ options = VarParsing("analysis")
 options.register("particle", "electron", VarParsing.multiplicity.singleton, VarParsing.varType.string)
 options.register("mult", 1, VarParsing.multiplicity.singleton, VarParsing.varType.int) # number of particles
 options.register("energy", 1, VarParsing.multiplicity.singleton, VarParsing.varType.float)
-options.register("sim", "Geant4", VarParsing.multiplicity.singleton, VarParsing.varType.string)
+options.register("sim", "G4", VarParsing.multiplicity.singleton, VarParsing.varType.string)
 options.register("threads", 1, VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.register("streams", 0, VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.register("year", 2018, VarParsing.multiplicity.singleton, VarParsing.varType.int)
@@ -20,7 +20,7 @@ else: raise ValueError("Unsupported particle: "+options.particle)
 
 # check options
 if options.streams == 0: options.streams = options.threads
-if options.sim!="Geant4" and options.sim!="GeantV":
+if options.sim!="G4" and options.sim!="GV":
     raise ValueError("Unsupported sim: "+options.sim)
 if options.year!=2018 and options.year!=2023:
     raise ValueError("Unsupported year: "+str(options.year))

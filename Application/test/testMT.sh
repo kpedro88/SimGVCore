@@ -13,7 +13,7 @@ for ((th=1;th<=$NCPU;th++)); do
 	done
 
 	# run test
-	./runTest.sh -t $TESTNUM -a "particle=electron mult=2 energy=50 maxEvents=100 sim=GeantV year=2018 threads=$th"
+	./runTest.sh -t $TESTNUM -a "particle=electron mult=2 energy=50 maxEvents=100 sim=GV year=2018 threads=$th"
 	TESTEXIT=$?
 
 	# kill busy processes
@@ -26,3 +26,6 @@ for ((th=1;th<=$NCPU;th++)); do
 		exit $TESTEXIT
 	fi
 done
+
+# do the analysis once the loop is finished
+analyzeTest.py -t $TESTNUM
