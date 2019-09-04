@@ -15,15 +15,16 @@ for ((th=1;th<=$NCPU;th++)); do
 	# run test
 	./runTest.sh -t $TESTNUM -a "particle=electron mult=2 energy=50 maxEvents=100 sim=GeantV year=2018 threads=$th"
 	TESTEXIT=$?
-	if [[ $TESTEXIT -ne 0 ]]; then
-		exit $TESTEXIT
-	fi
 
 	# kill busy processes
 	for PID in ${PIDS[@]}; do
 		kill $PID >& /dev/null
 		wait $PID >& /dev/null
 	done
+
+	if [[ $TESTEXIT -ne 0 ]]; then
+		exit $TESTEXIT
+	fi
 done
 
 ./cleanupTest.sh -t $TESTNUM
