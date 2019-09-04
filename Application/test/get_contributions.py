@@ -61,9 +61,9 @@ def get_contributions(report, log, geant, ptype):
                         stats["cpu"] = parseLogVal(line)
                 elif "VSIZE" in line or "RSS" in line:
                     if "VSIZE" in line:
-                        stats["vsize"] = parseLogVal(line,"VSIZE")
+                        stats["vsize"] = max(stats["vsize"],parseLogVal(line,"VSIZE"))
                     if "RSS" in line:
-                        stats["rss"] = parseLogVal(line,"RSS")
+                        stats["rss"] = max(stats["rss"],parseLogVal(line,"RSS"))
 
     # print results
     results = OrderedDict([("contributions", contributions)])
