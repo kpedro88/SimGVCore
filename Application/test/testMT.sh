@@ -2,6 +2,8 @@
 
 NCPU=$(cat /proc/cpuinfo | grep processor | wc -l)
 
+TESTNUM=$(./setupTest.sh)
+
 for ((th=1;th<=$NCPU;th++)); do
 	# use other CPUs
 	declare -A PIDS
@@ -9,13 +11,14 @@ for ((th=1;th<=$NCPU;th++)); do
 		yes >& /dev/null &
 		PIDS[$busy]=$!
 	done
-	# run main program
-	cmsRun runGeantV_cfi.py nThreads=$th >& log_runSingleElectron50_th${th}.log
-	# get results
-	echo "threads: ${th}"
-	grep "Total loop" log_runSingleElectron50_th${th}.log
-	grep "MemoryCheck: event : VSIZE" log_runSingleElectron50_th${th}.log | awk ' { if($5>maxv){maxv=$5;}; if($8>maxr){maxr=$8;}} END {print " - peak VSIZE: ", maxv, "\n - peak RSS: ", maxr }'
-	echo ""
+
+	# run test
+	./runTest.sh -t $TESTNUM -a "particle=electron mult=2 energy=50 maxEvents=100 sim=GeantV year=2018 threads=$th"
+	TESTEXIT=$?
+	if [[ $TESTEXIT -ne 0 ]]; then
+		exit $TESTEXIT
+	fi
+
 	# kill busy processes
 	for PID in ${PIDS[@]}; do
 		kill $PID >& /dev/null
@@ -23,3 +26,4 @@ for ((th=1;th<=$NCPU;th++)); do
 	done
 done
 
+./cleanupTest.sh -t $TESTNUM
