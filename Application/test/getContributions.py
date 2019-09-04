@@ -11,7 +11,7 @@ def parseLogVal(line,item=""):
         else:
             return 0.
 
-def get_contributions(report, log, geant, ptype):
+def getContributions(report, log, geant, ptype):
     geants = {
         "G4": "G4EventManager::DoProcessing",
         "GV": "geant::cxx::WorkloadManager::TransportTracksTask",
@@ -87,4 +87,4 @@ if __name__=="__main__":
     parser.add_argument("-p","--print", dest="ptype", type=str, default="text", choices=["","text","json"], help="how to print output")
     args = parser.parse_args()
 
-    get_contributions(args.report, args.log, args.geant, args.ptype)
+    getContributions(args.report, args.log, args.geant, args.ptype)
