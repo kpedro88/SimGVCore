@@ -1,5 +1,7 @@
 #!/bin/bash
 
+SIM=$1
+
 NCPU=$(cat /proc/cpuinfo | grep processor | wc -l)
 
 TESTNUM=$(./setupTest.sh)
@@ -13,7 +15,9 @@ for ((th=1;th<=$NCPU;th++)); do
 	done
 
 	# run test
-	./runTest.sh -t $TESTNUM -a "particle=electron mult=2 energy=50 maxEvents=100 sim=GV year=2018 threads=$th"
+	ARGS="particle=electron mult=2 energy=50 maxEvents=100 sim=$SIM year=2018 threads=$th"
+	echo "$ARGS" >> test${TESTNUM}/args.txt
+	./runTest.sh -t $TESTNUM -a "$ARGS"
 	TESTEXIT=$?
 
 	# kill busy processes

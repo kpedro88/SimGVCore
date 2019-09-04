@@ -11,7 +11,7 @@ cleanup() {
 	fi
 
 	# cleanup sim (log, pp.gz, report, root)
-	mv *SIMNAME* $FOLDER
+	mv *$SIMNAME* $FOLDER
 }
 
 TESTNUM=0
@@ -52,7 +52,7 @@ fi
 IGNAME=igprof_${SIMNAME}
 IGREP=igreport_${SIMNAME}.res
 
-igprof -d -t cmsRun -pp -z -o ${IGNAME}.pp.gz cmsRun $ARGS >& ${IGNAME}.log
+igprof -d -t cmsRun -pp -z -o ${IGNAME}.pp.gz cmsRun runSim.py $ARGS >& ${IGNAME}.log
 IGEXIT=$?
 if [[ $IGEXIT -ne 0 ]]; then
 	echo "Failure in sim or igprof ($SIMNAME)"
