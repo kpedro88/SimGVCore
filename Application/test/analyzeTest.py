@@ -26,25 +26,25 @@ with open(testdir+"/args.txt",'r') as argfile:
 
         # parse log and report
         results = getContributions(
-            report="igreport_"+gs.options._simname+".res",
-            log="igprof_"+gs.options._simname+".res",
+            report=testdir+"/igreport_"+gs.options._simname+".res",
+            log=testdir+"/igprof_"+gs.options._simname+".log",
             geant=gs.options.sim,
             ptype="",
         )
 
         # get parameters
         results["parameters"] = OrderedDict([
-            "particle": gs.options.particle,
-            "mult": gs.options.mult,
-            "energy": gs.options.energy,
-            "sim": gs.options.sim,
-            "threads": gs.options.threads,
-            "streams": gs.options.streams,
-            "maxEvents": gs.options.maxEvents,
+            ("particle", gs.options.particle),
+            ("mult", gs.options.mult),
+            ("energy", gs.options.energy),
+            ("sim", gs.options.sim),
+            ("threads", gs.options.threads),
+            ("streams", gs.options.streams),
+            ("maxEvents", gs.options.maxEvents),
         ])
 
         all_results.append(results)
 
 # dump output for later plotting    
-with open("data.json",'w') as outfile:
+with open(testdir+"/data.json",'w') as outfile:
 	json.dump(all_results,outfile)

@@ -32,4 +32,4 @@ for ((th=1;th<=$NCPU;th++)); do
 done
 
 # do the analysis once the loop is finished
-analyzeTest.py -t $TESTNUM
+python analyzeTest.py -t $TESTNUM
