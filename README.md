@@ -60,7 +60,7 @@ GEN parameters (`runGen.py`):
 
 SIM parameters (`runSim.py`):
 * above, plus
-* `sim`: Geant4 or GeantV
+* `sim`: G4 or GV
 * `year`: 2018 or 2023 (for CMS geometry)
 * `threads`: number of threads
 * `streams`: number of streams (0 -> `streams` = `threads`)
