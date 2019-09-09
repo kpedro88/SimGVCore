@@ -164,15 +164,17 @@ void GeantVProducer::preallocate(edm::PreallocationConfiguration const& iPreallo
 }
 
 std::shared_ptr<int> GeantVProducer::globalBeginRun(const edm::Run& iRun, const edm::EventSetup& iSetup) const {
-    // obtain the geometry
-    edm::ESTransientHandle<TGeoManager> geoh;
-    iSetup.get<DisplayGeomRecord>().get(geoh);
-    // this fills gGeoManager used by Geant classes
-    (void) geoh.product();
-    std::stringstream message;
-    message << " produce(): gGeoManager = " << gGeoManager;
-    if(gGeoManager) message << ", " << gGeoManager->GetName() << ", " << gGeoManager->GetTitle();
-    edm::LogInfo("GeantVProducer") << message.str();
+    if(cms_geometry_filename.empty()){
+        // obtain the geometry
+        edm::ESTransientHandle<TGeoManager> geoh;
+        iSetup.get<DisplayGeomRecord>().get(geoh);
+        // this fills gGeoManager used by Geant classes
+        (void) geoh.product();
+        std::stringstream message;
+        message << " produce(): gGeoManager = " << gGeoManager;
+        if(gGeoManager) message << ", " << gGeoManager->GetName() << ", " << gGeoManager->GetTitle();
+        edm::LogInfo("GeantVProducer") << message.str();
+    }
 
     // initialize manager
     // avoid CMSSW exception from kWarning issued by Geant::RunManager
