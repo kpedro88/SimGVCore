@@ -82,7 +82,7 @@ private:
   uint32_t getDetIDHC(int det, int lay, int depth,
 		      const math::XYZVectorD& pos) const;
   void fillHit(uint32_t id, double dE, double time, int primID, 
-	       uint16_t depth, double em, int flag);
+	       uint16_t depth, bool em, int flag);
   uint16_t getDepth(bool flag, double crystalDepth, double radl) const;
   double   curve_LY(double crystalLength, double crystalDepth) const;
   double   getBirkL3(double dE, double step, double chg, double dens) const;

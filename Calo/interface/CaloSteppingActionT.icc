@@ -23,7 +23,8 @@
 template <class Traits>
 CaloSteppingActionT<Traits>::CaloSteppingActionT(const edm::ParameterSet &p) : 
   params_(p),
-  count_(0) {
+  count_(0),
+  eventID_(0) {
 
   edm::ParameterSet iC = p.getParameter<edm::ParameterSet>("CaloSteppingAction");
   nameEBSD_       = iC.getParameter<std::vector<std::string> >("EBSDNames");
@@ -245,11 +246,11 @@ void CaloSteppingActionT<Traits>::update(const BeginEventWrapper& evt) {
                            << eventID_;
 #endif
   for (int k=0; k<CaloSteppingActionT<Traits>::nSD_; ++k) {
-    hitMap_[k].erase (hitMap_[k].begin(), hitMap_[k].end());
+    hitMap_[k].clear();
     slave_[k].get()->Initialize();
   }
   if (allSteps_ > 0)
-    store_.erase(store_.begin(), store_.end());
+    store_.clear();
 }
 
 //=================================================================== each STEP
@@ -406,11 +407,12 @@ uint32_t CaloSteppingActionT<Traits>::getDetIDHC(int det, int lay, int depth,
 
 template <class Traits>
 void CaloSteppingActionT<Traits>::fillHit(uint32_t id, double dE, double time,
-                                 int primID, uint16_t depth, double em,
+                                 int primID, uint16_t depth, bool em,
                                  int flag) {
   CaloHitID  currentID(id, time, primID, depth, timeSliceUnit_);
   double edepEM  = (em ? dE : 0);
   double edepHAD = (em ? 0 : dE);
+  assert(eventID_ != 0);
   std::pair<int,CaloHitID> evID = std::make_pair(eventID_,currentID);
   auto it = hitMap_[flag].find(evID);
   if (it != hitMap_[flag].end()) {

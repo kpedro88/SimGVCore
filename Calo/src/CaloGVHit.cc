@@ -5,6 +5,7 @@ CaloGVHit::CaloGVHit() {
   eventID_ = 0;
   elem_    = 0.;
   hadr_    = 0.;
+  hitID_   = 0.;
 }
 
 CaloGVHit::~CaloGVHit(){}
