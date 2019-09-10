@@ -1,7 +1,7 @@
 #!/bin/bash
 
 cleanup() {
-	FOLDER=test${TESTNUM}/
+	FOLDER=test${TESTNAME}/
 
 	# cleanup gen, checking for symlinked files that were already moved
 	if [ -L "$GENNAME" ]; then
@@ -14,28 +14,29 @@ cleanup() {
 	mv *$SIMNAME* $FOLDER
 }
 
-TESTNUM=0
+TESTNAME=""
 ARGS=""
 while getopts "t:a:" opt; do
 	case "$opt" in
-		t) TESTNUM=$OPTARG
+		t) TESTNAME=$OPTARG
 		;;
 		a) ARGS="$OPTARG"
 		;;
 	esac
 done
 
-if [ $TESTNUM -eq 0 ]; then
-	echo "Must specify test num with -t"
+if [ -z "$TESTNAME" ]; then
+	echo "Must specify test name with -t"
 	exit 1
 fi
 
+TESTDIR=test${TESTNAME}
 GENNAME=$(python getGenName.py $ARGS)
 SIMNAME=$(python getSimName.py $ARGS)
 
 # check in test folder
-if [ -f test${TESTNUM}/${GENNAME}.root ]; then
-	ln -s test${TESTNUM}/${GENNAME}.root . >& /dev/null
+if [ -f ${TESTDIR}/${GENNAME}.root ]; then
+	ln -s ${TESTDIR}/${GENNAME}.root . >& /dev/null
 fi
 # still nothing?
 if ! [ -f ${GENNAME}.root ]; then

@@ -1,12 +1,15 @@
 #!/bin/bash
 
-# automatically set up a new directory for this test
-TESTNUM=1
-while [[ -d test${TESTNUM} ]]; do
-  TESTNUM=$((TESTNUM+1))
-done
-mkdir test${TESTNUM}
+TESTNAME="$1"
+TESTDIR=test${TESTNAME}
 
-touch test${TESTNUM}/args.txt
+if [[ -d "$TESTDIR" ]]; then
+	echo "$TESTDIR already exists"
+	exit 1
+fi
 
-echo $TESTNUM
+mkdir $TESTDIR
+
+touch ${TESTDIR}/args.txt
+
+echo $TESTDIR
