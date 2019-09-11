@@ -116,7 +116,7 @@ scoring_ = cms.PSet(
 if options.sim=="G4":
     # set a constant magnetic field
     process.load("MagneticField.Engine.uniformMagneticField_cfi")
-    process.UniformMagneticFieldESProducer.ZFieldInTesla = cms.double(3.8)
+    process.UniformMagneticFieldESProducer.ZFieldInTesla = cms.double(options.bfield)
 
     # load g4SimHits module and psim sequence
     process.load("Configuration.StandardSequences.SimIdeal_cff")
@@ -174,7 +174,7 @@ elif options.sim=="GV":
     process.geantv = cms.EDProducer("GeantVProducer",
         HepMCProductLabel = cms.InputTag("generatorSmeared"),
         geometry = cms.string(""),
-        ZFieldInTesla = cms.double(3.8),
+        ZFieldInTesla = cms.double(options.bfield),
         Scoring = scoring_,
     )
 
