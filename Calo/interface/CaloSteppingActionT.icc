@@ -98,8 +98,11 @@ void CaloSteppingActionT<Traits>::produce(edm::Event& e, const edm::EventSetup&)
     e.put(std::move(product),nameHitC_[k]);
   }
   if (allSteps_ > 0) {
-    auto hgcPH = std::make_unique<edm::PassiveHitContainer>();
-    fillPassiveHits(*hgcPH);
+    auto hgcPH = std::make_unique<edm::PassiveHitContainer>(store_);
+#ifdef EDM_ML_DEBUG
+  edm::LogVerbatim("Step") << "CaloSteppingAction::produce PassiveHits with "
+                           << store_.size() << " hits";
+#endif
     e.put(std::move(hgcPH), "AllPassiveHits");
   }
 }
@@ -123,8 +126,9 @@ bool CaloSteppingActionT<Traits>::Merge(const CaloSteppingActionT<Traits>& other
   }
   //merge the store information
   if (allSteps_ > 0) {
+    store_.reserve(store_.size()+other.store_.size());
     for (const auto& hit : other.store_) {
-      store_.emplace_back(hit);
+      store_.push_back(hit);
     }
   }
   return true;
@@ -139,30 +143,6 @@ void CaloSteppingActionT<Traits>::fillHits(edm::PCaloHitContainer& cc, int type)
 #endif
   cc = slave_[type].get()->hits();
   slave_[type].get()->Clean();
-}
-
-
-template <class Traits>
-void CaloSteppingActionT<Traits>::fillPassiveHits(edm::PassiveHitContainer& cc) {
-#ifdef EDM_ML_DEBUG
-  edm::LogVerbatim("Step") << "CaloSteppingAction::fillPassiveHits with "
-                           << store_.size() << " hits";
-#endif
-  for (const auto& element : store_) {
-    auto lv = std::get<0>(element);
-    auto it = mapLV_.find(lv);
-    if (it != mapLV_.end()) {
-      PassiveHit hit(it->second,
-                     std::get<1>(element),
-                     std::get<5>(element),
-                     std::get<6>(element),
-                     std::get<4>(element),
-                     std::get<2>(element),
-                     std::get<3>(element),
-                     std::get<7>(element));
-      cc.emplace_back(hit);
-    }
-  }
 }
 
 template <class Traits>
@@ -328,8 +308,7 @@ void CaloSteppingActionT<Traits>::update(const StepWrapper& aStep) {
     uint32_t copy = aStep.getCopy();
     double stepl  = aStep.getStepLength();
     if (it != mapLV_.end()) {
-      PassiveData key(std::make_tuple(lv, copy, trackId, pdg, time, energy, energy, stepl));
-      store_.push_back(key);
+      store_.emplace_back(it->second, copy, energy, energy, time, trackId, pdg, stepl);
     }
   }
 }
