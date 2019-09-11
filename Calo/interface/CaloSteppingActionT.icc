@@ -123,24 +123,8 @@ bool CaloSteppingActionT<Traits>::Merge(const CaloSteppingActionT<Traits>& other
   }
   //merge the store information
   if (allSteps_ > 0) {
-#ifdef EDM_ML_DEBUG
-    int maxTrackID = 0;
-    for (const auto& hit : store_)
-      maxTrackID = std::max(maxTrackID,std::get<2>(hit.first));
-#endif
     for (const auto& hit : other.store_) {
-      auto evID = hit.first;
-#ifdef EDM_ML_DEBUG
-      auto it = store_.find(evID);
-      if (it != store_.end()) {
-        ++maxTrackID;
-        edm::LogVerbatim("Step") << "Duplicate ID " << evID.first << ":" 
-                                 << evID.second.first << " Track ID changed from "
-                                 << evID.second.second << " to " << maxTrackID;
-        evID = std::make_tuple(std::get<0>(evID),std::get<1>(evID),maxTrackID,std::get<3>(evID));
-      }
-#endif
-      store_[evID] = hit.second;
+      store_.emplace_back(hit);
     }
   }
   return true;
@@ -165,10 +149,17 @@ void CaloSteppingActionT<Traits>::fillPassiveHits(edm::PassiveHitContainer& cc) 
                            << store_.size() << " hits";
 #endif
   for (const auto& element : store_) {
-    auto lv = std::get<0>(element.first);
+    auto lv = std::get<0>(element);
     auto it = mapLV_.find(lv);
     if (it != mapLV_.end()) {
-      PassiveHit hit(it->second, std::get<1>(element.first), std::get<2>(element.second), std::get<3>(element.second), std::get<1>(element.second), std::get<2>(element.first), std::get<0>(element.second));
+      PassiveHit hit(it->second,
+                     std::get<1>(element),
+                     std::get<5>(element),
+                     std::get<6>(element),
+                     std::get<4>(element),
+                     std::get<2>(element),
+                     std::get<3>(element),
+                     std::get<7>(element));
       cc.emplace_back(hit);
     }
   }
@@ -332,40 +323,13 @@ void CaloSteppingActionT<Traits>::update(const StepWrapper& aStep) {
     auto it = mapLV_.find(lv);
     double energy = aStep.getEnergyDeposit() + aStep.addEnergy();
     double time   = aStep.getTime();
-    int    itime  = static_cast<int>(1000.0 * time);
     int    trackId= aStep.getTrackID();
     int    pdg    = aStep.getPDGId();
     uint32_t copy = aStep.getCopy();
+    double stepl  = aStep.getStepLength();
     if (it != mapLV_.end()) {
-      PassiveKey key(std::make_tuple(lv, copy, trackId, itime));
-      if (allSteps_ > 1) {
-        bool flag(true);
-        while (store_.find(key) != store_.end()) {
-          copy += 1000000;
-          key = std::make_tuple(lv, copy, trackId, itime);
-          if (copy > 100000000) {
-            flag = false;
-            break;
-          }
-        }
-        if (flag) {
-          store_[key] = std::make_tuple(pdg, time, energy, energy);
-        } else {
-          auto itr = store_.find(key);
-          double e1 = std::get<2>(itr->second) + energy;
-          double e2 = std::get<3>(itr->second) + energy;
-          store_[key] = std::make_tuple(pdg, time, e1, e2);
-        }
-      } else {
-        auto itr = store_.find(key);
-        if (itr == store_.end()) {
-          store_[key] = std::make_tuple(pdg, time, energy, energy);
-        } else {
-          double e1 = std::get<2>(itr->second) + energy;
-          double e2 = std::get<3>(itr->second) + energy;
-          store_[key] = std::make_tuple(pdg, time, e1, e2);
-        }
-      }
+      PassiveData key(std::make_tuple(lv, copy, trackId, pdg, time, energy, energy, stepl));
+      store_.push_back(key);
     }
   }
 }
@@ -412,7 +376,6 @@ void CaloSteppingActionT<Traits>::fillHit(uint32_t id, double dE, double time,
   CaloHitID  currentID(id, time, primID, depth, timeSliceUnit_);
   double edepEM  = (em ? dE : 0);
   double edepHAD = (em ? 0 : dE);
-  assert(eventID_ != 0);
   std::pair<int,CaloHitID> evID = std::make_pair(eventID_,currentID);
   auto it = hitMap_[flag].find(evID);
   if (it != hitMap_[flag].end()) {
