@@ -87,8 +87,7 @@ for col in ["contributions","stats"]:
 
 for plot in plot_qtys:
     for zval,zframe in zframes.iteritems():
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
+        fig, (ax, lax) = plt.subplots(ncols=2, gridspec_kw={"width_ratios":[2.5,1]})
         ax.set_prop_cycle(cycler('color',['k','b','m','r','c']))
         
         # make line plots
@@ -107,9 +106,10 @@ for plot in plot_qtys:
         patches = [mpl.patches.Patch(color='w', label=p+": "+str(zframe["parameters"][p][0])) for p in zframe["parameters"] if p not in ignore_list2]
         handles.extend(patches)
         labels.extend([patch.get_label() for patch in patches])
-        #legend = ax.legend(loc="best", handles=handles)
-        legend = fig.legend(handles=handles, labels=labels, bbox_to_anchor=(1.04,1), borderaxespad=0, loc='upper right')
-        fig.subplots_adjust(right=0.75)
+        legend = lax.legend(handles=handles, labels=labels, borderaxespad=0, loc='upper right')
+        # remove unwanted components
+        lax.axis("off")
+        ax.get_legend().remove()
         
         # print
         pname = args.x+"_vs_"+plot+"__"+zval
