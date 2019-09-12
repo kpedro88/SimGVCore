@@ -3,8 +3,8 @@ from getContributions import getContributions
 from collections import OrderedDict
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 
-def analyzeFile(fname, all_results):
-    with open(testdir+"/args.txt",'r') as argfile:
+def analyzeFile(dir, fname, all_results):
+    with open(dir+"/"+fname,'r') as argfile:
         for line in argfile:
             # parse args for this test
             sys.argv[1:] = line.rstrip().split(' ')
@@ -12,8 +12,8 @@ def analyzeFile(fname, all_results):
 
             # parse log and report
             results = getContributions(
-                report=testdir+"/igreport_"+gs.options._simname+".res",
-                log=testdir+"/igprof_"+gs.options._simname+".log",
+                report=dir+"/igreport_"+gs.options._simname+".res",
+                log=dir+"/igprof_"+gs.options._simname+".log",
                 geant=gs.options.sim,
                 ptype="",
             )
@@ -23,6 +23,7 @@ def analyzeFile(fname, all_results):
                 ("particle", gs.options.particle),
                 ("mult", gs.options.mult),
                 ("energy", gs.options.energy),
+                ("bfield", gs.options.bfield),
                 ("sim", gs.options.sim),
                 ("threads", gs.options.threads),
                 ("streams", gs.options.streams),
@@ -52,12 +53,12 @@ import SimGVCore.Application.optGenSim as gs
 
 # loop over all tests in this dir
 all_results = []
-analyzeFile(testdir+"/args.txt", all_results)
+analyzeFile(testdir, "args.txt", all_results)
 # check for link to alternate sim dir for corresponding test
 for sim in ["G4","GV"]:
     altdir = sim+"/"+testdir
     if os.path.isdir(altdir):
-        analyzeFile(altdir+"/args.txt",all_results)
+        analyzeFile(altdir, "args.txt", all_results)
 
 # dump output for later plotting    
 with open(testdir+"/data.json",'w') as outfile:
