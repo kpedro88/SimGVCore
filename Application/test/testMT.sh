@@ -7,7 +7,7 @@ NCPU=$(cat /proc/cpuinfo | grep processor | wc -l)
 
 ./setupTest.sh $TESTNAME
 SETUPEXIT=$?
-if [[ $SETUPEXIT -ne 0 ]]; thn
+if [[ $SETUPEXIT -ne 0 ]]; then
 	exit $SETUPEXIT
 fi
 

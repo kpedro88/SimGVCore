@@ -29,7 +29,13 @@ def analyzeFile(fname, all_results):
                 ("maxEvents", gs.options.maxEvents),
             ])
 
-            all_results.append(results)
+            # transform into multi-index friendly format
+            results2 = OrderedDict()
+            for col in results:
+                for param in results[col]:
+                    results2[col+"_"+param] = results[col][param]
+
+            all_results.append(results2)
 
 # check arguments
 parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
@@ -49,7 +55,7 @@ all_results = []
 analyzeFile(testdir+"/args.txt", all_results)
 # check for link to alternate sim dir for corresponding test
 for sim in ["G4","GV"]:
-    altdir = sim+"/"+testdir:
+    altdir = sim+"/"+testdir
     if os.path.isdir(altdir):
         analyzeFile(altdir+"/args.txt",all_results)
 
