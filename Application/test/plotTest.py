@@ -1,6 +1,7 @@
 import os
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from collections import OrderedDict
+import numpy as np
 import pandas as pd
 from cycler import cycler
 import matplotlib as mpl
@@ -47,7 +48,7 @@ zframes = OrderedDict()
 ignore_list = args.ignore[:]
 ignore_list.append(args.x)
 for zval in zvals:
-    zframes[zval] = dframe.loc[dframe["parameters"].query(args.z+" == '"+str(zval)+"'").index]
+    zframes[zval] = dframe.loc[dframe["parameters"].query(args.z+" == '"+str(zval)+"'").index].copy()
     # adjust index
     zframes[zval].index = range(0,len(zframes[zval]))
     # check for unwanted parameter variations
@@ -56,6 +57,10 @@ for zval in zvals:
     nonuniqs = [p for p in params if p not in ignore_list and len(zframes[zval]["parameters"][p].unique())>1]
     if len(nonuniqs)>0:
         raise ValueError("Dataframe subset for z = "+str(zval)+" has varied parameters: "+",".join(nonuniqs))
+    # calculate speedup if varying # threads
+    if args.x=="threads":
+        zframes[zval][("stats","speedup")] = np.power(pd.Series(zframes[zval]["stats"]["time"])/zframes[zval].loc[zframes[zval]["parameters"].query("threads==1").index]["stats"]["time"][0],-1)
+        print zframes[zval]
 
 # compute ratios
 zframes["ratio"] = None
@@ -86,6 +91,12 @@ col_qtys = OrderedDict()
 for col in ["contributions","stats"]:
     for key in dframe[col]:
         col_qtys[key] = col
+
+# additions for derived speedup
+if args.x=="threads":
+    plot_qtys["speedup"] = ["speedup"]
+    ytitles["speedup"] = "speedup"
+    col_qtys["speedup"] = "stats"
 
 for plot in plot_qtys:
     for zval,zframe in zframes.iteritems():
