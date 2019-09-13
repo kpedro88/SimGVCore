@@ -73,10 +73,12 @@ if len(args.numer)>0 and len(args.denom)>0:
 plot_qtys = OrderedDict([
     ("cpu",["total","other","geant","scoring","output"]),
     ("mem",["vsize","rss"]),
+    ("time",["time"]),
 ])
 ytitles = {
     "cpu": "CPU [ticks]",
     "mem": "memory [MB]",
+    "time": "wall clock time [s]",
 }
 
 # get top level column for each qty
@@ -96,13 +98,13 @@ for plot in plot_qtys:
             
         # axis info
         ax.set_xlabel(args.x)
-        ax.set_ylabel(ratiotitle if zval=="ratio" else ytitles[plot])
+        ax.set_ylabel(ratiotitle+" ("+ytitles[plot]+")" if zval=="ratio" else ytitles[plot])
         fig.tight_layout()
         
         # add params to legend
         handles, labels = ax.get_legend_handles_labels()
         ignore_list2 = ignore_list[:]
-        if zval=="ratio": ignore_list.append(args.z)
+        if zval=="ratio": ignore_list2.append(args.z)
         patches = [mpl.patches.Patch(color='w', label=p+": "+str(zframe["parameters"][p][0])) for p in zframe["parameters"] if p not in ignore_list2]
         handles.extend(patches)
         labels.extend([patch.get_label() for patch in patches])

@@ -29,15 +29,19 @@ def getContributions(report, log, geant, ptype):
         "rss",
     ]
 
-    contributions = OrderedDict([(key,0.0) for key in categories])
+    contributions = OrderedDict()
     contributions["other"] = 0.0
 
     with open(report,'r') as infile:
         for line in infile:
             if line[0]=='[':
                 for key,cat in categories.iteritems():
-                    if cat in line:
-                        contributions[key] = float(line.split()[2])
+                    if cat in line and key not in contributions: # prevent overwriting
+                        contributions[key] = float(line.split()[2].replace("'",""))
+    # fill in missing
+    for key in categories:
+        if key not in contributions:
+            contributions[key] = 0.0
 
     # compute remaining contribution (initialization + overhead) from total minus others
     # scoring is subset of geant, so skip it
