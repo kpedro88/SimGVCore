@@ -21,6 +21,7 @@
 #include "SimGVCore/Calo/interface/HcalNumberingScheme.h"
 #include "SimGVCore/Calo/interface/CaloGVHit.h"
 #include "SimGVCore/Calo/interface/HcalNumberingFromPS.h"
+#include "SimGVCore/Calo/interface/CaloMapT.h"
 
 #include "Geometry/EcalCommonData/interface/EcalBarrelNumberingScheme.h"
 #include "Geometry/EcalCommonData/interface/EcalBaseNumber.h"
@@ -89,6 +90,8 @@ private:
   double   getBirkHC(double dE, double step, double chg, double dens) const;
   void     saveHits(int flag);
 
+  const CaloMapT<Traits>& fillCaloMap() const;
+
   edm::ParameterSet params_;
 
   static const int                      nSD_= 3;
@@ -100,8 +103,7 @@ private:
 
   std::vector<std::string>              nameEBSD_, nameEESD_, nameHCSD_;
   std::vector<std::string>              nameHitC_;
-  std::vector<const Volume*>            volEBSD_, volEESD_, volHCSD_;
-  std::map<const Volume*,double>        xtalMap_;
+  const CaloMapT<Traits>*               caloMap_;
   std::map<const Volume*,std::string>   mapLV_;
   int                                   allSteps_, count_, eventID_;
   double                                slopeLY_, birkC1EC_, birkSlopeEC_;

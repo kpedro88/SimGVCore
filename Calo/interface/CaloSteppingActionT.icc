@@ -23,6 +23,7 @@
 template <class Traits>
 CaloSteppingActionT<Traits>::CaloSteppingActionT(const edm::ParameterSet &p) : 
   params_(p),
+  caloMap_(nullptr),
   count_(0),
   eventID_(0) {
 
@@ -160,51 +161,33 @@ void CaloSteppingActionT<Traits>::update(const BeginRunWrapper& run) {
   int irun = run.getRunID();
   edm::LogVerbatim("Step") << "CaloSteppingAction:: Begin of Run = " << irun;
 #endif
-  const auto& nameMap = VolumeWrapper::getVolumes();
-    for (auto const& name : nameEBSD_) {
-      for (const auto& itr : nameMap) {
-        const std::string &lvname = itr.first;
-        if (lvname.find(name) != std::string::npos) {
-          volEBSD_.emplace_back(itr.second);
-          int type =  (lvname.find("refl") == std::string::npos) ? -1 : 1;
-          double dz = VolumeWrapper(itr.second).dz();
-          xtalMap_.emplace(itr.second,dz*type);
-        }
-      }
-    }
-    for (auto const& name : nameEESD_) {
-      for (const auto& itr : nameMap) {
-        const std::string &lvname = itr.first;
-        if (lvname.find(name) != std::string::npos)  {
-          volEESD_.emplace_back(itr.second);
-          int type =  (lvname.find("refl") == std::string::npos) ? 1 : -1;
-          double dz = VolumeWrapper(itr.second).dz();
-          xtalMap_.emplace(itr.second,dz*type);
-        }
-      }
-    }
-    for (auto const& name : nameHCSD_) {
-      for (const auto& itr : nameMap) {
-        const std::string &lvname = itr.first;
-        if (lvname.find(name) != std::string::npos) 
-          volHCSD_.emplace_back(itr.second);
-      }
-    }
+
+  //eventually this should be replaced by an EventSetup object
+  caloMap_ = &(fillCaloMap());
+
     if (allSteps_ > 0) {
+      const auto& nameMap = VolumeWrapper::getVolumes();
       for (const auto& itr : nameMap) 
         mapLV_[itr.second] = itr.first;
     }
 #ifdef EDM_ML_DEBUG
-  edm::LogVerbatim("Step") << volEBSD_.size() << " logical volumes for EB SD";
-  for (unsigned int k=0; k<volEBSD_.size(); ++k)
-    edm::LogVerbatim("Step") << "[" << k << "] " << volEBSD_[k];
-  edm::LogVerbatim("Step") << volEESD_.size() << " logical volumes for EE SD";
-  for (unsigned int k=0; k<volEESD_.size(); ++k)
-    edm::LogVerbatim("Step") << "[" << k << "] " << volEESD_[k];
-  edm::LogVerbatim("Step") << volHCSD_.size() << " logical volumes for HC SD";
-  for (unsigned int k=0; k<volHCSD_.size(); ++k)
-    edm::LogVerbatim("Step") << "[" << k << "] " << volHCSD_[k];
+  edm::LogVerbatim("Step") << caloMap_->volEBSD().size() << " logical volumes for EB SD";
+  for (unsigned int k=0; k<caloMap_->volEBSD().size(); ++k)
+    edm::LogVerbatim("Step") << "[" << k << "] " << caloMap_->volEBSD()[k];
+  edm::LogVerbatim("Step") << caloMap_->volEESD().size() << " logical volumes for EE SD";
+  for (unsigned int k=0; k<caloMap_->volEESD().size(); ++k)
+    edm::LogVerbatim("Step") << "[" << k << "] " << caloMap_->volEESD()[k];
+  edm::LogVerbatim("Step") << caloMap_->volHCSD().size() << " logical volumes for HC SD";
+  for (unsigned int k=0; k<caloMap_->volHCSD().size(); ++k)
+    edm::LogVerbatim("Step") << "[" << k << "] " << caloMap_->volHCSD()[k];
 #endif
+}
+
+template <class Traits>
+const CaloMapT<Traits>& CaloSteppingActionT<Traits>::fillCaloMap() const {
+  static const CaloMapT<Traits> caloMap(nameEBSD_,nameEESD_,nameHCSD_);
+
+  return caloMap;
 }
 
 //=================================================================== per EVENT
@@ -230,9 +213,9 @@ void CaloSteppingActionT<Traits>::update(const StepWrapper& aStep) {
 
   NaNTrap(aStep);
   auto lv = aStep.getVolume();
-  bool hc = (std::find(volHCSD_.begin(),volHCSD_.end(),lv)!=volHCSD_.end());
-  bool eb = (std::find(volEBSD_.begin(),volEBSD_.end(),lv)!=volEBSD_.end());
-  bool ee = (std::find(volEESD_.begin(),volEESD_.end(),lv)!=volEESD_.end());
+  bool hc = (std::find(caloMap_->volHCSD().begin(),caloMap_->volHCSD().end(),lv)!=caloMap_->volHCSD().end());
+  bool eb = (std::find(caloMap_->volEBSD().begin(),caloMap_->volEBSD().end(),lv)!=caloMap_->volEBSD().end());
+  bool ee = (std::find(caloMap_->volEESD().begin(),caloMap_->volEESD().end(),lv)!=caloMap_->volEESD().end());
   if  (hc || eb || ee) {
     double dEStep = aStep.getEnergyDeposit();
     double time   = aStep.getTime();
@@ -283,13 +266,13 @@ void CaloSteppingActionT<Traits>::update(const StepWrapper& aStep) {
                      (eeNumberingScheme_->getUnitID(theBaseNumber)));
       if (unitID > 0 && dEStep > 0.0) {
         double dz = aStep.getDz();
-        auto ite   = xtalMap_.find(lv);
-        double crystalLength = ((ite == xtalMap_.end()) ? 230.0 : 
+        auto ite   = caloMap_->xtalMap().find(lv);
+        double crystalLength = ((ite == caloMap_->xtalMap().end()) ? 230.0 : 
                                 std::abs(ite->second));
-        double crystalDepth = ((ite == xtalMap_.end()) ? 0.0 :
+        double crystalDepth = ((ite == caloMap_->xtalMap().end()) ? 0.0 :
                                (std::abs(0.5*(ite->second)+dz)));
         double radl   = aStep.getRadlen();
-        bool   flag   = ((ite == xtalMap_.end()) ? true : (((ite->second) >= 0)
+        bool   flag   = ((ite == caloMap_->xtalMap().end()) ? true : (((ite->second) >= 0)
                                                            ? true : false));
         auto   depth  = getDepth(flag, crystalDepth, radl);
         dEStep        *= (getBirkL3(dEStep,aStep.getStepLength(), aStep.getCharge(), aStep.getDensity()) * 
