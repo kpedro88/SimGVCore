@@ -22,6 +22,7 @@ options.register("streams", 0, VarParsing.multiplicity.singleton, VarParsing.var
 options.register("year", 2018, VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.register("bfield", 3.8, VarParsing.multiplicity.singleton, VarParsing.varType.float)
 options.register("maxEventsIn", -1, VarParsing.multiplicity.singleton, VarParsing.varType.int)
+options.register("output", True, VarParsing.multiplicity.singleton, VarParsing.varType.bool)
 options.parseArguments()
 
 # choose particle

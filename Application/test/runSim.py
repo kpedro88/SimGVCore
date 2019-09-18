@@ -48,6 +48,8 @@ process.RAWSIMoutput = cms.OutputModule("PoolOutputModule",
     outputCommands = process.RAWSIMEventContent.outputCommands,
     splitLevel = cms.untracked.int32(0)
 )
+if not options.output:
+    process.RAWSIMoutput = cms.OutputModule("AsciiOutputModule")
 
 # Additional output definition
 
@@ -178,7 +180,7 @@ elif options.sim=="GV":
         Scoring = scoring_,
     )
 
-    process.RAWSIMoutput.outputCommands.append("keep *_geantv_*_*")
+    if options.output: process.RAWSIMoutput.outputCommands.append("keep *_geantv_*_*")
 
     process.psim = cms.Sequence(process.geantv)
 
