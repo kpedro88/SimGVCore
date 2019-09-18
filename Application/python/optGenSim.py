@@ -23,6 +23,7 @@ options.register("year", 2018, VarParsing.multiplicity.singleton, VarParsing.var
 options.register("bfield", 3.8, VarParsing.multiplicity.singleton, VarParsing.varType.float)
 options.register("maxEventsIn", -1, VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.register("output", True, VarParsing.multiplicity.singleton, VarParsing.varType.bool)
+options.register("ncopy", 1, VarParsing.multiplicity.singleton, VarParsing.varType.int)
 options.parseArguments()
 
 # choose particle
@@ -45,5 +46,7 @@ if any([defaults[x] != getattr(options,x) for x in defaults]):
     nametmp = nametmp+"_eta"+str(options.mineta)+"to"+str(options.maxeta)+"_phi"+str(options.minphi)+"to"+str(options.maxphi)
 # gen name definition
 options._genname = "gen_"+nametmp+"_n"+str(options.maxEventsIn)
+# copy name definition (concatenated gen files)
+options._copyname = "gen_"+nametmp+"_n"+str(options.maxEventsIn*options.ncopy)
 # sim name definition
 options._simname = "sim_"+options.sim+"_year"+str(options.year)+"_"+nametmp+"_bfield"+str(options.bfield)+"_n"+str(options.maxEvents)+"_th"+str(options.threads)+"_st"+str(options.streams)

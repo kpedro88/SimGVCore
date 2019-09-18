@@ -1,9 +1,66 @@
 #!/bin/bash
 
-TESTNAME=$1
-SIM=$2
-
+TESTNAME=""
+SIM=""
+NEVENTS=0
 NCPU=$(cat /proc/cpuinfo | grep processor | wc -l)
+ARGS="particle=electron mult=2 energy=50 year=2018"
+
+while getopts "t:a:s:n:" opt; do
+	case "$opt" in
+		t) TESTNAME=$OPTARG
+		;;
+		a) ARGS="$OPTARG"
+		;;
+		s) SIM="$OPTARG"
+		;;
+		n) NEVENTS="$OPTARG"
+		;;
+	esac
+done
+
+if [ -z "$TESTNAME" ]; then
+	echo "Must specify -t"
+	exit 1
+fi
+
+if [ -z "$SIM" ]; then
+	echo "Must specify -s"
+	exit 1
+fi
+
+if [ "$NEVENTS" -eq 0 ]; then
+	echo "Must specify -n"
+	exit 1
+fi
+
+if [ -z "$ARGS" ]; then
+	echo "Must have args"
+	exit 1
+fi
+
+# check gen
+GENNAME=$(python getGenName.py $ARGS maxEvents=$NEVENTS)
+if ! [ -f ${GENNAME}.root ]; then
+	cmsRun runGen.py $ARGS maxEvents=$NEVENTS
+	CMSEXIT=$?
+	if [[ $CMSEXIT -ne 0 ]]; then
+		echo "Failure in gen ($GENNAME)"
+		exit $CMSEXIT
+	fi
+fi
+
+# check concatenated gen
+TOTEVENTS=$(( NEVENTS*NCPU ))
+TOTGENNAME=$(python getGenName.py $ARGS maxEvents=$TOTEVENTS)
+if ! [ -f ${TOTGENNAME}.root ]; then
+	cmsRun runCopy.py $ARGS maxEvents=$NEVENTS ncopy=$NCPU
+	CMSEXIT=$?
+	if [[ $CMSEXIT -ne 0 ]]; then
+		echo "Failure in copy ($TOTGENNAME)"
+		exit $CMSEXIT
+	fi
+fi
 
 ./setupTest.sh $TESTNAME
 SETUPEXIT=$?
@@ -21,9 +78,10 @@ for ((th=1;th<=$NCPU;th++)); do
 	done
 
 	# run test
-	ARGS="particle=electron mult=2 energy=50 maxEvents=1000 sim=$SIM year=2018 threads=$th"
-	echo "$ARGS" >> ${TESTDIR}/args.txt
-	./runTest.sh -t $TESTNAME -a "$ARGS"
+	THISEVENTS=$(( th*NEVENTS ))
+	TARGS="$ARGS maxEvents=$THISEVENTS maxEventsIn=$TOTEVENTS sim=$SIM threads=$th"
+	echo "$TARGS" >> ${TESTDIR}/args.txt
+	./runTest.sh -t $TESTNAME -a "$TARGS"
 	TESTEXIT=$?
 
 	# kill busy processes
