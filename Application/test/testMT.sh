@@ -21,7 +21,7 @@ for ((th=1;th<=$NCPU;th++)); do
 	done
 
 	# run test
-	ARGS="particle=electron mult=2 energy=50 maxEvents=100 sim=$SIM year=2018 threads=$th"
+	ARGS="particle=electron mult=2 energy=50 maxEvents=1000 sim=$SIM year=2018 threads=$th"
 	echo "$ARGS" >> ${TESTDIR}/args.txt
 	./runTest.sh -t $TESTNAME -a "$ARGS"
 	TESTEXIT=$?
