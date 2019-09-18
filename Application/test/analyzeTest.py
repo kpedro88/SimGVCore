@@ -13,7 +13,7 @@ def analyzeFile(dir, fname, all_results):
             # parse log and report
             results = getContributions(
                 report=dir+"/igreport_"+gs.options._simname+".res",
-                log=dir+"/igprof_"+gs.options._simname+".log",
+                log=dir+"/log_"+gs.options._simname+".log",
                 geant=gs.options.sim,
                 ptype="",
             )

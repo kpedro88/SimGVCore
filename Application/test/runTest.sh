@@ -49,6 +49,16 @@ if ! [ -f ${GENNAME}.root ]; then
 	fi
 fi
 
+# bare cmsRun for accurate time/mem
+CMSNAME=log_${SIMNAME}.log
+cmsRun runSim.py $ARGS >& ${CMSNAME}
+CMSEXIT=$?
+if [[ $CMSEXIT -ne 0 ]]; then
+	echo "Failure in sim ($SIMNAME)"
+	cleanup
+	exit $CMSEXIT
+fi
+
 # now run igprof and generate report
 IGNAME=igprof_${SIMNAME}
 IGREP=igreport_${SIMNAME}.res
@@ -56,7 +66,7 @@ IGREP=igreport_${SIMNAME}.res
 igprof -d -t cmsRun -pp -z -o ${IGNAME}.pp.gz cmsRun runSim.py $ARGS >& ${IGNAME}.log
 IGEXIT=$?
 if [[ $IGEXIT -ne 0 ]]; then
-	echo "Failure in sim or igprof ($SIMNAME)"
+	echo "Failure in igprof ($SIMNAME)"
 	cleanup
 	exit $IGEXIT
 fi
