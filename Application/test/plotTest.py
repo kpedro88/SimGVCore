@@ -60,7 +60,6 @@ for zval in zvals:
     # calculate speedup if varying # threads
     if args.x=="threads":
         zframes[zval][("stats","speedup")] = np.power(pd.Series(zframes[zval]["stats"]["time"])/zframes[zval].loc[zframes[zval]["parameters"].query("threads==1").index]["stats"]["time"][0],-1)
-        print zframes[zval]
 
 # compute ratios
 zframes["ratio"] = None
