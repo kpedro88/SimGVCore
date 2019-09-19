@@ -4,7 +4,7 @@ TESTNAME=""
 SIM=""
 NEVENTS=0
 NCPU=$(cat /proc/cpuinfo | grep processor | wc -l)
-ARGS="particle=electron mult=2 energy=50 year=2018"
+ARGS="particle=electron mult=2 energy=50 year=2018 output=0"
 
 while getopts "t:a:s:n:" opt; do
 	case "$opt" in

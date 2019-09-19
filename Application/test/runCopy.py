@@ -7,6 +7,7 @@ process = cms.Process('COPY')
 
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(['file:'+options._genname+'.root']*options.ncopy),
+    duplicateCheckMode = cms.untracked.string("noDuplicateCheck"),
 )
 
 process.maxEvents = cms.untracked.PSet(
