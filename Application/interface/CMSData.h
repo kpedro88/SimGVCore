@@ -39,8 +39,7 @@ class CMSDataPerEvent : public GVScoring {
 
 		//for final output
 		bool Merge(const CMSDataPerEvent& other);
-		void produce(edm::Event&, const edm::EventSetup&);
-		void clear() { fSD->clear(); }
+		CaloSteppingAction* GetData() { return fSD.get(); }
 
 	private:
 		//member variables
@@ -54,10 +53,7 @@ class CMSDataPerThread : public GVScoring {
 		~CMSDataPerThread() {}
 
 		//required interface
-		void Clear(int index) {
-			//avoid holding on to memory after merging
-			fDataPerEvent[index].clear();
-		}
+		void Clear(int index) {}
 		bool Merge(int index, const CMSDataPerThread& other);
 
 		//common scoring interface
@@ -68,7 +64,7 @@ class CMSDataPerThread : public GVScoring {
 		void FinishRun() override;
 
 		//for final output
-		const CMSDataPerEvent& GetEventData(int slot);
+		CaloSteppingAction* GetEventData(int slot) { return fDataPerEvent[slot].GetData(); }
 
 	private:
 		//member variables

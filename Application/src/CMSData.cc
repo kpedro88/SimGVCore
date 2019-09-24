@@ -48,10 +48,6 @@ bool CMSDataPerEvent::Merge(const CMSDataPerEvent& other) {
 	return fSD->Merge(*other.fSD);
 }
 
-void CMSDataPerEvent::produce(edm::Event& e, const edm::EventSetup& s) {
-	fSD->produce(e, s);
-}
-
 //------------------------------------------------------------------------------------------
 //implementation of per-thread data
 
@@ -87,8 +83,3 @@ void CMSDataPerThread::FinishRun() {
 bool CMSDataPerThread::Merge(int index, const CMSDataPerThread& other){
 	return fDataPerEvent[index].Merge(other.fDataPerEvent[index]);
 }
-
-const CMSDataPerEvent& CMSDataPerThread::GetEventData(int slot) {
-	return fDataPerEvent[slot];
-}
-
