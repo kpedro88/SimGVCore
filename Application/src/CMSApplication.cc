@@ -19,7 +19,7 @@ bool CMSApplication::Initialize() {
 	fDataHandler = fRunMgr->GetTDManager()->RegisterUserData<CMSDataPerThread>("CMSDataPerThread");
 
 	//slots for output data
-	fEventData.resize(fNumBufferedEvents);
+	fEventData.resize(fNumBufferedEvents, fParams);
 
 	fInitialized = true;
 	return true;
@@ -78,5 +78,5 @@ void CMSApplication::SteppingActions(geant::Track &track, geant::TaskData *td) {
 }
 
 CMSDataPerEvent& CMSApplication::GetEventData(int slot) {
-	return *fEventData[slot];
+	return fEventData[slot];
 }

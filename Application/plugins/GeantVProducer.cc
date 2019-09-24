@@ -330,6 +330,8 @@ void GeantVProducer::produce(edm::StreamID iStream, edm::Event& iEvent, edm::Eve
 	auto slot = streamCache(iStream);
 	auto cmsApp = static_cast<CMSApplication*>(fRunMgr->GetUserApplication());
 	cmsApp->GetEventData(*slot).produce(iEvent,iSetup);
+    //don't hang on to memory
+    cmsApp->GetEventData(*slot).clear();
 
     edm::LogInfo("GeantVProducer") <<" at "<< this <<": done!";
 }

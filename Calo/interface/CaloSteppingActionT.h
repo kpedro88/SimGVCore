@@ -55,7 +55,9 @@ public:
   typedef typename Traits::VolumeWrapper VolumeWrapper;
 
   CaloSteppingActionT(const edm::ParameterSet &p);
+  CaloSteppingActionT(const CaloSteppingActionT& other);
   ~CaloSteppingActionT() override;
+  CaloSteppingActionT& operator=(const CaloSteppingActionT& other);
 
   void produce(edm::Event&, const edm::EventSetup&) override;
 
@@ -67,10 +69,11 @@ public:
   void update(const EndEvent * evt)   override { update(EndEventWrapper(evt)); }
 
   // helpers
-  const edm::ParameterSet& GetParams() const;
   bool Merge(const CaloSteppingActionT<Traits>& other);
+  void clear();
 
 private:
+  void constructPointersAndProduces();
   void fillHits(edm::PCaloHitContainer& cc, int type);
   void fillPassiveHits(edm::PassiveHitContainer &cc);
   // subordinate functions with unified interfaces
@@ -109,7 +112,7 @@ private:
   double                                slopeLY_, birkC1EC_, birkSlopeEC_;
   double                                birkCutEC_, birkC1HC_, birkC2HC_;
   double                                birkC3HC_, timeSliceUnit_;
-  std::map<std::pair<int,CaloHitID>,CaloGVHit> hitMap_[nSD_];
+  std::array<std::map<std::pair<int,CaloHitID>,CaloGVHit>,nSD_> hitMap_;
   edm::PassiveHitContainer store_;
 };
 

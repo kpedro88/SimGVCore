@@ -35,7 +35,7 @@ class CMSApplication : public geant::UserApplication {
 		bool fInitialized;
 		int fNumBufferedEvents;
 		geant::TaskDataHandle<CMSDataPerThread> *fDataHandler;
-		std::vector<CMSDataPerEvent*> fEventData;
+		std::vector<CMSDataPerEvent> fEventData;
 };
 
 #endif

@@ -28,6 +28,7 @@ class CMSDataPerEvent : public GVScoring {
 		//specialized copy constructor
 		CMSDataPerEvent(const CMSDataPerEvent& orig);
 		~CMSDataPerEvent() {}
+		CMSDataPerEvent& operator=(const CMSDataPerEvent& other);
 
 		//common scoring interface
 		void BeginRun() override;
@@ -39,6 +40,7 @@ class CMSDataPerEvent : public GVScoring {
 		//for final output
 		bool Merge(const CMSDataPerEvent& other);
 		void produce(edm::Event&, const edm::EventSetup&);
+		void clear() { fSD->clear(); }
 
 	private:
 		//member variables
@@ -52,7 +54,10 @@ class CMSDataPerThread : public GVScoring {
 		~CMSDataPerThread() {}
 
 		//required interface
-		void Clear(int index) {} //DataPerEvent clears itself when BeginEvent() is called
+		void Clear(int index) {
+			//avoid holding on to memory after merging
+			fDataPerEvent[index].clear();
+		}
 		bool Merge(int index, const CMSDataPerThread& other);
 
 		//common scoring interface
@@ -63,7 +68,7 @@ class CMSDataPerThread : public GVScoring {
 		void FinishRun() override;
 
 		//for final output
-		CMSDataPerEvent* GetEventData(int slot);
+		const CMSDataPerEvent& GetEventData(int slot);
 
 	private:
 		//member variables
