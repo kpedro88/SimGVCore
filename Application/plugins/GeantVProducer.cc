@@ -129,6 +129,7 @@ class GeantVProducer : public edm::global::EDProducer<edm::ExternalWork,edm::Run
     // e.g. cms2015.root, cms2018.gdml, ExN03.root
     std::string cms_geometry_filename;
     double zFieldInTesla;
+    bool singleTrackMode;
     edm::EDGetTokenT<edm::HepMCProduct> m_InToken;
     int n_threads;
     // cheating because run manager's functions modify its internal state
@@ -140,6 +141,7 @@ GeantVProducer::GeantVProducer(edm::ParameterSet const& iConfig) :
 	scoringParams(iConfig.getParameter<edm::ParameterSet>("Scoring")),
     cms_geometry_filename(iConfig.getParameter<std::string>("geometry")),
     zFieldInTesla(iConfig.getParameter<double>("ZFieldInTesla")),
+    singleTrackMode(iConfig.getParameter<bool>("singleTrackMode")),
     m_InToken(consumes<edm::HepMCProduct>(iConfig.getParameter<edm::InputTag>("HepMCProductLabel"))),
     n_threads(0),
 	fRunMgr(nullptr)
@@ -204,6 +206,7 @@ void GeantVProducer::initialize() const {
     GeantConfig* fConfig = new GeantConfig();
 
     fConfig->fRunMode = GeantConfig::kExternalLoop;
+    if(singleTrackMode) fConfig->fSingleTrackMode = true;
 
     fConfig->fGeomFileName = cms_geometry_filename;
     fConfig->fNtotal = 9999; //need to get nevents from somewhere

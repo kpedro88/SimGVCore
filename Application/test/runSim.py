@@ -178,6 +178,7 @@ elif options.sim=="GV":
         HepMCProductLabel = cms.InputTag("generatorSmeared"),
         geometry = cms.string(""),
         ZFieldInTesla = cms.double(options.bfield),
+        singleTrackMode = cms.bool(True),
         Scoring = scoring_,
     )
 
