@@ -291,6 +291,7 @@ void GeantVProducer::acquire(edm::StreamID iStream, edm::Event const& iEvent, ed
 
     // First book a transport task from GeantV run manager
     TaskData *td = fRunMgr->BookTransportTask();
+	edm::LogError("FindDataRace") << "acquire taskdata " << td << " in taskslot " << td->fTaskSlot << " EventID " << event_index;
     edm::LogInfo("GeantVProducer") <<" acquire(): td= "<< td <<", EventID="<<event_index;
     if (!td) {
         std::exception_ptr exceptionPtr;
@@ -330,6 +331,7 @@ void GeantVProducer::produce(edm::StreamID iStream, edm::Event& iEvent, edm::Eve
 	auto slot = streamCache(iStream);
 	auto cmsApp = static_cast<CMSApplication*>(fRunMgr->GetUserApplication());
 	cmsApp->GetEventData(*slot).produce(iEvent,iSetup);
+    edm::LogError("FindDataRace") << "produce perthread " << &(cmsApp->GetEventData(*slot)) << " for slot " << *slot << " = stream " << iStream << " = event " << iEvent.eventAuxiliary().event();
 
     edm::LogInfo("GeantVProducer") <<" at "<< this <<": done!";
 }

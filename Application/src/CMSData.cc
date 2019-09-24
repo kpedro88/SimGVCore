@@ -51,7 +51,11 @@ void CMSDataPerEvent::produce(edm::Event& e, const edm::EventSetup& s) {
 CMSDataPerThread::CMSDataPerThread(int nevtbuffered, const edm::ParameterSet& p) :
 	fNumBufferedEvents(nevtbuffered),
 	fDataPerEvent(fNumBufferedEvents,CMSDataPerEvent(p))
-{ }
+{
+  for(unsigned i = 0; i < fDataPerEvent.size(); ++i){
+    edm::LogError("FindDataRace") << "construct perevent " << &fDataPerEvent[i] << " in slot " << i << " for perthread " << this;
+  }
+}
 
 void CMSDataPerThread::BeginRun() {
 	for(auto& dataPerEvent : fDataPerEvent){
@@ -60,14 +64,17 @@ void CMSDataPerThread::BeginRun() {
 }
 
 void CMSDataPerThread::BeginEvent(geant::Event* event) {
+    edm::LogError("FindDataRace") << "BeginEvent w/ perevent " << &fDataPerEvent[event->GetSlot()] << " in slot " << event->GetSlot() << " for perthread " << this;
 	fDataPerEvent[event->GetSlot()].BeginEvent(event);
 }
 
 void CMSDataPerThread::SteppingActions(geant::Track& track) {
+//    edm::LogError("FindDataRace") << "SteppingActions w/ perevent " << &fDataPerEvent[track.EventSlot()] << " in slot " << track.EventSlot() << " for perthread " << this;
 	fDataPerEvent[track.EventSlot()].SteppingActions(track);
 }
 
 void CMSDataPerThread::FinishEvent(geant::Event* event) {
+    edm::LogError("FindDataRace") << "FinishEvent w/ perevent " << &fDataPerEvent[event->GetSlot()] << " in slot " << event->GetSlot() << " for perthread " << this;
 	fDataPerEvent[event->GetSlot()].FinishEvent(event);
 }
 
@@ -78,6 +85,7 @@ void CMSDataPerThread::FinishRun() {
 }
 
 bool CMSDataPerThread::Merge(int index, const CMSDataPerThread& other){
+    edm::LogError("FindDataRace") << "Merge slot " << index << " for perevents " << &fDataPerEvent[index] << ", " << &other;
 	return fDataPerEvent[index].Merge(other.fDataPerEvent[index]);
 }
 

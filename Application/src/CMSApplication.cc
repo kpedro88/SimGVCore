@@ -28,6 +28,7 @@ bool CMSApplication::Initialize() {
 void CMSApplication::AttachUserData(geant::TaskData *td) {
 	CMSDataPerThread *eventData = new CMSDataPerThread(fNumBufferedEvents,fParams);
 	fDataHandler->AttachUserData(eventData, td);
+    edm::LogError("FindDataRace") << "attach perthread " << eventData << " for taskdata " << td;
 }
 
 void CMSApplication::BeginRun() {
@@ -70,6 +71,7 @@ void CMSApplication::FinishEvent(geant::Event* event) {
 	}
 	//merge and store thread-local data for this event
 	fEventData[event->GetSlot()] = fRunMgr->GetTDManager()->MergeUserData(event->GetSlot(), *fDataHandler)->GetEventData(event->GetSlot());
+    edm::LogError("FindDataRace") << "FinishEvent outperevent " << fEventData[event->GetSlot()] << " for slot " << event->GetSlot();
 }
 
 void CMSApplication::SteppingActions(geant::Track &track, geant::TaskData *td) {
