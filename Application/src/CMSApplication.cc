@@ -1,4 +1,5 @@
 #include "SimGVCore/Application/interface/CMSApplication.h"
+#include "SimGVCore/Application/interface/CMSEvent.h"
 
 #include "Geant/RunManager.h"
 #include "Geant/TaskData.h"
@@ -17,9 +18,6 @@ bool CMSApplication::Initialize() {
 	
 	//register thread-local data
 	fDataHandler = fRunMgr->GetTDManager()->RegisterUserData<CMSDataPerThread>("CMSDataPerThread");
-
-	//slots for output data
-	fEventData.resize(fNumBufferedEvents);
 
 	fInitialized = true;
 	return true;
@@ -69,14 +67,13 @@ void CMSApplication::FinishEvent(geant::Event* event) {
 		data->FinishEvent(event);
 	}
 	//merge and store thread-local data for this event
-	fEventData[event->GetSlot()] = fRunMgr->GetTDManager()->MergeUserData(event->GetSlot(), *fDataHandler)->GetEventData(event->GetSlot());
+	auto base_data = fRunMgr->GetTDManager()->MergeUserData(event->GetSlot(), *fDataHandler);
+	static_cast<CMSEvent*>(event)->Store(*(base_data->GetEventData(event->GetSlot())));
+	//now clear out unneeded data
+	base_data->Clear(event->GetSlot());
 }
 
 void CMSApplication::SteppingActions(geant::Track &track, geant::TaskData *td) {
 	auto data = fDataHandler->GetUserData(td);
 	data->SteppingActions(track);
-}
-
-CMSDataPerEvent& CMSApplication::GetEventData(int slot) {
-	return *fEventData[slot];
 }

@@ -21,6 +21,7 @@
 #include "SimGVCore/Calo/interface/HcalNumberingScheme.h"
 #include "SimGVCore/Calo/interface/CaloGVHit.h"
 #include "SimGVCore/Calo/interface/HcalNumberingFromPS.h"
+#include "SimGVCore/Calo/interface/CaloMapT.h"
 
 #include "Geometry/EcalCommonData/interface/EcalBarrelNumberingScheme.h"
 #include "Geometry/EcalCommonData/interface/EcalBaseNumber.h"
@@ -54,7 +55,9 @@ public:
   typedef typename Traits::VolumeWrapper VolumeWrapper;
 
   CaloSteppingActionT(const edm::ParameterSet &p);
+  CaloSteppingActionT(const CaloSteppingActionT& other);
   ~CaloSteppingActionT() override;
+  CaloSteppingActionT& operator=(const CaloSteppingActionT& other);
 
   void produce(edm::Event&, const edm::EventSetup&) override;
 
@@ -66,10 +69,11 @@ public:
   void update(const EndEvent * evt)   override { update(EndEventWrapper(evt)); }
 
   // helpers
-  const edm::ParameterSet& GetParams() const;
   bool Merge(const CaloSteppingActionT<Traits>& other);
+  void clear();
 
 private:
+  void constructPointersAndProduces();
   void fillHits(edm::PCaloHitContainer& cc, int type);
   void fillPassiveHits(edm::PassiveHitContainer &cc);
   // subordinate functions with unified interfaces
@@ -89,6 +93,8 @@ private:
   double   getBirkHC(double dE, double step, double chg, double dens) const;
   void     saveHits(int flag);
 
+  const CaloMapT<Traits>& fillCaloMap() const;
+
   edm::ParameterSet params_;
 
   static const int                      nSD_= 3;
@@ -100,14 +106,13 @@ private:
 
   std::vector<std::string>              nameEBSD_, nameEESD_, nameHCSD_;
   std::vector<std::string>              nameHitC_;
-  std::vector<const Volume*>            volEBSD_, volEESD_, volHCSD_;
-  std::map<const Volume*,double>        xtalMap_;
+  const CaloMapT<Traits>*               caloMap_;
   std::map<const Volume*,std::string>   mapLV_;
   int                                   allSteps_, count_, eventID_;
   double                                slopeLY_, birkC1EC_, birkSlopeEC_;
   double                                birkCutEC_, birkC1HC_, birkC2HC_;
   double                                birkC3HC_, timeSliceUnit_;
-  std::map<std::pair<int,CaloHitID>,CaloGVHit> hitMap_[nSD_];
+  std::array<std::map<std::pair<int,CaloHitID>,CaloGVHit>,nSD_> hitMap_;
   edm::PassiveHitContainer store_;
 };
 

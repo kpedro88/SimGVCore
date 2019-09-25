@@ -26,16 +26,12 @@ class CMSApplication : public geant::UserApplication {
 		void FinishEvent(geant::Event *event) override;
 		void FinishRun() override;
 
-		//methods for CMSSW data access
-		CMSDataPerEvent& GetEventData(int slot);
-
 	private:
 		//member variables
 		edm::ParameterSet fParams;
 		bool fInitialized;
 		int fNumBufferedEvents;
 		geant::TaskDataHandle<CMSDataPerThread> *fDataHandler;
-		std::vector<CMSDataPerEvent*> fEventData;
 };
 
 #endif

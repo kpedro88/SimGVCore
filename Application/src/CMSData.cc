@@ -11,8 +11,15 @@ CMSDataPerEvent::CMSDataPerEvent() : fSD(nullptr), fInitialized(false) { }
 
 CMSDataPerEvent::CMSDataPerEvent(const edm::ParameterSet& p) : fSD(std::make_unique<CaloSteppingAction>(p)), fInitialized(false) { }
 
-//SD class needs custom copy via Clone() function (contains unique_ptrs)
-CMSDataPerEvent::CMSDataPerEvent(const CMSDataPerEvent& orig) : fSD(orig.fSD ? std::make_unique<CaloSteppingAction>(orig.fSD->GetParams()) : nullptr), fInitialized(false) { }
+CMSDataPerEvent::CMSDataPerEvent(const CMSDataPerEvent& orig) : fSD(std::make_unique<CaloSteppingAction>(*orig.fSD)), fInitialized(orig.fInitialized) { }
+
+CMSDataPerEvent& CMSDataPerEvent::operator=(const CMSDataPerEvent& other) {
+	if(this != &other){
+		fSD = std::make_unique<CaloSteppingAction>(*other.fSD);
+		fInitialized = other.fInitialized;
+	}
+	return *this;
+}
 
 //pass calls through to SD class
 
@@ -39,10 +46,6 @@ void CMSDataPerEvent::FinishRun() { }
 
 bool CMSDataPerEvent::Merge(const CMSDataPerEvent& other) {
 	return fSD->Merge(*other.fSD);
-}
-
-void CMSDataPerEvent::produce(edm::Event& e, const edm::EventSetup& s) {
-	fSD->produce(e, s);
 }
 
 //------------------------------------------------------------------------------------------
@@ -80,8 +83,3 @@ void CMSDataPerThread::FinishRun() {
 bool CMSDataPerThread::Merge(int index, const CMSDataPerThread& other){
 	return fDataPerEvent[index].Merge(other.fDataPerEvent[index]);
 }
-
-CMSDataPerEvent* CMSDataPerThread::GetEventData(int slot) {
-	return &fDataPerEvent[slot];
-}
-

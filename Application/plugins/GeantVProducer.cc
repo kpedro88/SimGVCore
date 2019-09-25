@@ -43,6 +43,7 @@
 #include "Geant/PhysicsListManager.h"
 
 #include "SimGVCore/CaloGV/interface/CaloSteppingAction.h"
+#include "SimGVCore/Application/interface/CMSEvent.h"
 #include "SimGVCore/Application/interface/CMSData.h"
 #include "SimGVCore/Application/interface/CMSApplication.h"
 #include "SimGVCore/Application/interface/CMSPhysicsListX.h"
@@ -77,35 +78,12 @@ namespace {
 }
 
 //dummy run cache to get access to global begin run
-//stream cache to keep track of GeantV event slot number
-typedef int SlotCache;
-class GeantVProducer : public edm::global::EDProducer<edm::ExternalWork,edm::RunCache<int>,edm::StreamCache<SlotCache>> {
+class GeantVProducer : public edm::global::EDProducer<edm::ExternalWork,edm::RunCache<int>,edm::StreamCache<EventCache>> {
   public:
-    // an event with a callback
-    class EventCB : public geant::Event {
-        public:
-            EventCB(edm::WaitingTaskWithArenaHolder holder, SlotCache* slot) : holder_(std::move(holder)), slot_(slot) {
-				//clear slot value
-				*slot_ = -1;
-			}
-
-            void FinalActions() override {
-				//set slot value
-				*slot_ = this->GetSlot();
-				edm::LogInfo("GeantVProducer") << "Callback for event " << this;
-                std::exception_ptr exceptionPtr;
-                holder_.doneWaiting(exceptionPtr);
-            }
-
-        private:
-            edm::WaitingTaskWithArenaHolder holder_;
-			SlotCache* slot_;
-    };
-
     GeantVProducer(edm::ParameterSet const&);
     ~GeantVProducer() override;
 
-	std::unique_ptr<SlotCache> beginStream(edm::StreamID) const override;
+	std::unique_ptr<EventCache> beginStream(edm::StreamID) const override;
 
     void acquire(edm::StreamID, edm::Event const&, edm::EventSetup const&, edm::WaitingTaskWithArenaHolder) const override;
 
@@ -123,12 +101,13 @@ class GeantVProducer : public edm::global::EDProducer<edm::ExternalWork,edm::Run
     Not required as application functionality, the event reading or generation
     can in the external event loop.
     */
-    std::unique_ptr<geant::EventSet> GenerateEventSet(const HepMC::GenEvent * evt, long long event_index, edm::WaitingTaskWithArenaHolder iHolder, SlotCache* slot, TaskData *td) const;
+    std::unique_ptr<geant::EventSet> GenerateEventSet(const HepMC::GenEvent * evt, long long event_index, edm::WaitingTaskWithArenaHolder iHolder, EventCache* cache, TaskData *td) const;
 
 	edm::ParameterSet scoringParams;
     // e.g. cms2015.root, cms2018.gdml, ExN03.root
     std::string cms_geometry_filename;
     double zFieldInTesla;
+    bool singleTrackMode;
     edm::EDGetTokenT<edm::HepMCProduct> m_InToken;
     int n_threads;
     // cheating because run manager's functions modify its internal state
@@ -140,6 +119,7 @@ GeantVProducer::GeantVProducer(edm::ParameterSet const& iConfig) :
 	scoringParams(iConfig.getParameter<edm::ParameterSet>("Scoring")),
     cms_geometry_filename(iConfig.getParameter<std::string>("geometry")),
     zFieldInTesla(iConfig.getParameter<double>("ZFieldInTesla")),
+    singleTrackMode(iConfig.getParameter<bool>("singleTrackMode")),
     m_InToken(consumes<edm::HepMCProduct>(iConfig.getParameter<edm::InputTag>("HepMCProductLabel"))),
     n_threads(0),
 	fRunMgr(nullptr)
@@ -155,8 +135,8 @@ GeantVProducer::~GeantVProducer() {
     delete fRunMgr;
 }
 
-std::unique_ptr<SlotCache> GeantVProducer::beginStream(edm::StreamID) const {
-	return std::make_unique<SlotCache>(-1);
+std::unique_ptr<EventCache> GeantVProducer::beginStream(edm::StreamID) const {
+	return std::make_unique<EventCache>();
 }
 
 void GeantVProducer::preallocate(edm::PreallocationConfiguration const& iPrealloc) {
@@ -204,6 +184,7 @@ void GeantVProducer::initialize() const {
     GeantConfig* fConfig = new GeantConfig();
 
     fConfig->fRunMode = GeantConfig::kExternalLoop;
+    if(singleTrackMode) fConfig->fSingleTrackMode = true;
 
     fConfig->fGeomFileName = cms_geometry_filename;
     fConfig->fNtotal = 9999; //need to get nevents from somewhere
@@ -296,8 +277,8 @@ void GeantVProducer::acquire(edm::StreamID iStream, edm::Event const& iEvent, ed
     }
 
     // ... then create the event set
-	auto slot = streamCache(iStream);
-    auto evset = GenerateEventSet(evt, event_index, iHolder, slot, td);
+	auto cache = streamCache(iStream);
+    auto evset = GenerateEventSet(evt, event_index, iHolder, cache, td);
 
     edm::Service<edm::RootHandlers> rootHandler;
     auto rootHandlerPtr = &(*rootHandler);
@@ -324,15 +305,16 @@ void GeantVProducer::produce(edm::StreamID iStream, edm::Event& iEvent, edm::Eve
 
 	//get the event data back from GeantV
 	//the "final" DataPerEvent object after merging puts the products into the event
-	auto slot = streamCache(iStream);
-	auto cmsApp = static_cast<CMSApplication*>(fRunMgr->GetUserApplication());
-	cmsApp->GetEventData(*slot).produce(iEvent,iSetup);
+	auto cache = streamCache(iStream);
+	cache->sd_->produce(iEvent,iSetup);
+    //don't hang on to memory
+	cache->clear();
 
     edm::LogInfo("GeantVProducer") <<" at "<< this <<": done!";
 }
 
 // eventually this can become more like SimG4Core/Generators/interface/Generator.h
-std::unique_ptr<geant::EventSet> GeantVProducer::GenerateEventSet(const HepMC::GenEvent * evt, long long event_index, edm::WaitingTaskWithArenaHolder iHolder, SlotCache* slot, geant::TaskData *td) const
+std::unique_ptr<geant::EventSet> GeantVProducer::GenerateEventSet(const HepMC::GenEvent * evt, long long event_index, edm::WaitingTaskWithArenaHolder iHolder, EventCache* cache, geant::TaskData *td) const
 {
     using EventSet = geant::EventSet;
     using Event = geant::Event;
@@ -340,7 +322,7 @@ std::unique_ptr<geant::EventSet> GeantVProducer::GenerateEventSet(const HepMC::G
 
     auto evset = std::make_unique<EventSet>(1);
     // keep track of the callback
-    auto event = std::make_unique<EventCB>(iHolder,slot);
+    auto event = std::make_unique<CMSEvent>(iHolder,cache);
 
     // convert from HepMC to GeantV format
     //event->SetEvent(evt->event_number());

@@ -22,25 +22,24 @@
 
 template <class Traits>
 CaloSteppingActionT<Traits>::CaloSteppingActionT(const edm::ParameterSet &p) : 
-  params_(p),
+  params_(p.getParameter<edm::ParameterSet>("CaloSteppingAction")),
+  nameEBSD_(params_.getParameter<std::vector<std::string>>("EBSDNames")),
+  nameEESD_(params_.getParameter<std::vector<std::string>>("EESDNames")),
+  nameHCSD_(params_.getParameter<std::vector<std::string>>("HCSDNames")),
+  nameHitC_(params_.getParameter<std::vector<std::string>>("HitCollNames")),
+  caloMap_(nullptr),
+  allSteps_(params_.getParameter<int>("AllSteps")),
   count_(0),
-  eventID_(0) {
-
-  edm::ParameterSet iC = p.getParameter<edm::ParameterSet>("CaloSteppingAction");
-  nameEBSD_       = iC.getParameter<std::vector<std::string> >("EBSDNames");
-  nameEESD_       = iC.getParameter<std::vector<std::string> >("EESDNames");
-  nameHCSD_       = iC.getParameter<std::vector<std::string> >("HCSDNames");
-  nameHitC_       = iC.getParameter<std::vector<std::string> >("HitCollNames");
-  allSteps_       = iC.getParameter<int>("AllSteps");
-  slopeLY_        = iC.getParameter<double>("SlopeLightYield");
-  birkC1EC_       = iC.getParameter<double>("BirkC1EC");
-  birkSlopeEC_    = iC.getParameter<double>("BirkSlopeEC");
-  birkCutEC_      = iC.getParameter<double>("BirkCutEC");
-  birkC1HC_       = iC.getParameter<double>("BirkC1HC");
-  birkC2HC_       = iC.getParameter<double>("BirkC2HC");
-  birkC3HC_       = iC.getParameter<double>("BirkC3HC");
-  timeSliceUnit_  = iC.getUntrackedParameter<double>("TimeSliceUnit",1.0);
-
+  eventID_(0),
+  slopeLY_(params_.getParameter<double>("SlopeLightYield")),
+  birkC1EC_(params_.getParameter<double>("BirkC1EC")),
+  birkSlopeEC_(params_.getParameter<double>("BirkSlopeEC")),
+  birkCutEC_(params_.getParameter<double>("BirkCutEC")),
+  birkC1HC_(params_.getParameter<double>("BirkC1HC")),
+  birkC2HC_(params_.getParameter<double>("BirkC2HC")),
+  birkC3HC_(params_.getParameter<double>("BirkC3HC")),
+  timeSliceUnit_(params_.getUntrackedParameter<double>("TimeSliceUnit",1.0))
+{
 #ifdef EDM_ML_DEBUG
   edm::LogVerbatim("Step") << "CaloSteppingAction:: " << nameEBSD_.size() 
                            << " names for EB SD's";
@@ -66,16 +65,9 @@ CaloSteppingActionT<Traits>::CaloSteppingActionT(const edm::ParameterSet &p) :
   for (unsigned int k=0; k<nameHitC_.size(); ++k)
     edm::LogVerbatim("Step") << "[" << k << "] " << nameHitC_[k];
 #endif
-  ebNumberingScheme_ = std::make_unique<EcalBarrelNumberingScheme>();
-  eeNumberingScheme_ = std::make_unique<EcalEndcapNumberingScheme>();
-  hcNumberingPS_     = std::make_unique<HcalNumberingFromPS>(iC);
-  hcNumberingScheme_ = std::make_unique<HcalNumberingScheme>();
-  for (int k=0; k<CaloSteppingActionT::nSD_; ++k) {
-    slave_[k] = std::make_unique<CaloSlaveSD>(nameHitC_[k]);
-    produces<edm::PCaloHitContainer>(nameHitC_[k]);
-  }
-  if (allSteps_ > 0) 
-    produces<edm::PassiveHitContainer>("AllPassiveHits");
+
+  this->constructPointersAndProduces();
+
 #ifdef EDM_ML_DEBUG
   edm::LogVerbatim("Step") << "CaloSteppingAction:: All Steps Flag " 
   			   << allSteps_ << " for passive hits";
@@ -83,9 +75,78 @@ CaloSteppingActionT<Traits>::CaloSteppingActionT(const edm::ParameterSet &p) :
 } 
 
 template <class Traits>
+CaloSteppingActionT<Traits>::CaloSteppingActionT(const CaloSteppingActionT<Traits>& other) :
+  params_(other.params_),
+  nameEBSD_(other.nameEBSD_),
+  nameEESD_(other.nameEESD_),
+  nameHCSD_(other.nameHCSD_),
+  nameHitC_(other.nameHitC_),
+  caloMap_(other.caloMap_),
+  mapLV_(other.mapLV_),
+  allSteps_(other.allSteps_),
+  count_(other.count_),
+  eventID_(other.eventID_),
+  slopeLY_(other.slopeLY_),
+  birkC1EC_(other.birkC1EC_),
+  birkSlopeEC_(other.birkSlopeEC_),
+  birkCutEC_(other.birkCutEC_),
+  birkC1HC_(other.birkC1HC_),
+  birkC2HC_(other.birkC2HC_),
+  birkC3HC_(other.birkC3HC_),
+  timeSliceUnit_(other.timeSliceUnit_),
+  hitMap_(other.hitMap_),
+  store_(other.store_)
+{
+  //handle unique_ptrs separately
+  this->constructPointersAndProduces();
+}
+
+template <class Traits>
 CaloSteppingActionT<Traits>::~CaloSteppingActionT() {
   edm::LogVerbatim("Step") << "CaloSteppingAction: -------->  Total number of "
                            << "selected entries : " << count_;
+}
+
+template <class Traits>
+CaloSteppingActionT<Traits>& CaloSteppingActionT<Traits>::operator=(const CaloSteppingActionT<Traits>& other) {
+  if(this != &other){
+    params_ = other.params_;
+    nameEBSD_ = other.nameEBSD_;
+    nameEESD_ = other.nameEESD_;
+    nameHCSD_ = other.nameHCSD_;
+    nameHitC_ = other.nameHitC_;
+    caloMap_ = other.caloMap_;
+    mapLV_ = other.mapLV_;
+    allSteps_ = other.allSteps_;
+    count_ = other.count_;
+    eventID_ = other.eventID_;
+    slopeLY_ = other.slopeLY_;
+    birkC1EC_ = other.birkC1EC_;
+    birkSlopeEC_ = other.birkSlopeEC_;
+    birkCutEC_ = other.birkCutEC_;
+    birkC1HC_ = other.birkC1HC_;
+    birkC2HC_ = other.birkC2HC_;
+    birkC3HC_ = other.birkC3HC_;
+    timeSliceUnit_ = other.timeSliceUnit_;
+    hitMap_ = other.hitMap_;
+    store_ = other.store_;
+  }
+
+  return *this;
+}
+
+template <class Traits>
+void CaloSteppingActionT<Traits>::constructPointersAndProduces() {
+  ebNumberingScheme_ = std::make_unique<EcalBarrelNumberingScheme>();
+  eeNumberingScheme_ = std::make_unique<EcalEndcapNumberingScheme>();
+  hcNumberingPS_     = std::make_unique<HcalNumberingFromPS>(params_);
+  hcNumberingScheme_ = std::make_unique<HcalNumberingScheme>();
+  for (int k=0; k<CaloSteppingActionT::nSD_; ++k) {
+    slave_[k] = std::make_unique<CaloSlaveSD>(nameHitC_[k]);
+    produces<edm::PCaloHitContainer>(nameHitC_[k]);
+  }
+  if (allSteps_ > 0) 
+    produces<edm::PassiveHitContainer>("AllPassiveHits");
 }
 
 template <class Traits>
@@ -105,12 +166,6 @@ void CaloSteppingActionT<Traits>::produce(edm::Event& e, const edm::EventSetup&)
 #endif
     e.put(std::move(hgcPH), "AllPassiveHits");
   }
-}
-
-//access stored params (to make another instance of this class)
-template <class Traits>
-const edm::ParameterSet& CaloSteppingActionT<Traits>::GetParams() const {
-  return params_;
 }
 
 template <class Traits>
@@ -160,51 +215,33 @@ void CaloSteppingActionT<Traits>::update(const BeginRunWrapper& run) {
   int irun = run.getRunID();
   edm::LogVerbatim("Step") << "CaloSteppingAction:: Begin of Run = " << irun;
 #endif
-  const auto& nameMap = VolumeWrapper::getVolumes();
-    for (auto const& name : nameEBSD_) {
-      for (const auto& itr : nameMap) {
-        const std::string &lvname = itr.first;
-        if (lvname.find(name) != std::string::npos) {
-          volEBSD_.emplace_back(itr.second);
-          int type =  (lvname.find("refl") == std::string::npos) ? -1 : 1;
-          double dz = VolumeWrapper(itr.second).dz();
-          xtalMap_.emplace(itr.second,dz*type);
-        }
-      }
-    }
-    for (auto const& name : nameEESD_) {
-      for (const auto& itr : nameMap) {
-        const std::string &lvname = itr.first;
-        if (lvname.find(name) != std::string::npos)  {
-          volEESD_.emplace_back(itr.second);
-          int type =  (lvname.find("refl") == std::string::npos) ? 1 : -1;
-          double dz = VolumeWrapper(itr.second).dz();
-          xtalMap_.emplace(itr.second,dz*type);
-        }
-      }
-    }
-    for (auto const& name : nameHCSD_) {
-      for (const auto& itr : nameMap) {
-        const std::string &lvname = itr.first;
-        if (lvname.find(name) != std::string::npos) 
-          volHCSD_.emplace_back(itr.second);
-      }
-    }
+
+  //eventually this should be replaced by an EventSetup object
+  caloMap_ = &(fillCaloMap());
+
     if (allSteps_ > 0) {
+      const auto& nameMap = VolumeWrapper::getVolumes();
       for (const auto& itr : nameMap) 
         mapLV_[itr.second] = itr.first;
     }
 #ifdef EDM_ML_DEBUG
-  edm::LogVerbatim("Step") << volEBSD_.size() << " logical volumes for EB SD";
-  for (unsigned int k=0; k<volEBSD_.size(); ++k)
-    edm::LogVerbatim("Step") << "[" << k << "] " << volEBSD_[k];
-  edm::LogVerbatim("Step") << volEESD_.size() << " logical volumes for EE SD";
-  for (unsigned int k=0; k<volEESD_.size(); ++k)
-    edm::LogVerbatim("Step") << "[" << k << "] " << volEESD_[k];
-  edm::LogVerbatim("Step") << volHCSD_.size() << " logical volumes for HC SD";
-  for (unsigned int k=0; k<volHCSD_.size(); ++k)
-    edm::LogVerbatim("Step") << "[" << k << "] " << volHCSD_[k];
+  edm::LogVerbatim("Step") << caloMap_->volEBSD().size() << " logical volumes for EB SD";
+  for (unsigned int k=0; k<caloMap_->volEBSD().size(); ++k)
+    edm::LogVerbatim("Step") << "[" << k << "] " << caloMap_->volEBSD()[k];
+  edm::LogVerbatim("Step") << caloMap_->volEESD().size() << " logical volumes for EE SD";
+  for (unsigned int k=0; k<caloMap_->volEESD().size(); ++k)
+    edm::LogVerbatim("Step") << "[" << k << "] " << caloMap_->volEESD()[k];
+  edm::LogVerbatim("Step") << caloMap_->volHCSD().size() << " logical volumes for HC SD";
+  for (unsigned int k=0; k<caloMap_->volHCSD().size(); ++k)
+    edm::LogVerbatim("Step") << "[" << k << "] " << caloMap_->volHCSD()[k];
 #endif
+}
+
+template <class Traits>
+const CaloMapT<Traits>& CaloSteppingActionT<Traits>::fillCaloMap() const {
+  static const CaloMapT<Traits> caloMap(nameEBSD_,nameEESD_,nameHCSD_);
+
+  return caloMap;
 }
 
 //=================================================================== per EVENT
@@ -216,9 +253,17 @@ void CaloSteppingActionT<Traits>::update(const BeginEventWrapper& evt) {
   edm::LogVerbatim("Step") <<"CaloSteppingAction: Begin of event = " 
                            << eventID_;
 #endif
+  clear();
+
+  for (int k=0; k<CaloSteppingActionT<Traits>::nSD_; ++k) {
+    slave_[k].get()->Initialize();
+  }
+}
+
+template <class Traits>
+void CaloSteppingActionT<Traits>::clear() {
   for (int k=0; k<CaloSteppingActionT<Traits>::nSD_; ++k) {
     hitMap_[k].clear();
-    slave_[k].get()->Initialize();
   }
   if (allSteps_ > 0)
     store_.clear();
@@ -230,9 +275,9 @@ void CaloSteppingActionT<Traits>::update(const StepWrapper& aStep) {
 
   NaNTrap(aStep);
   auto lv = aStep.getVolume();
-  bool hc = (std::find(volHCSD_.begin(),volHCSD_.end(),lv)!=volHCSD_.end());
-  bool eb = (std::find(volEBSD_.begin(),volEBSD_.end(),lv)!=volEBSD_.end());
-  bool ee = (std::find(volEESD_.begin(),volEESD_.end(),lv)!=volEESD_.end());
+  bool hc = (std::find(caloMap_->volHCSD().begin(),caloMap_->volHCSD().end(),lv)!=caloMap_->volHCSD().end());
+  bool eb = (std::find(caloMap_->volEBSD().begin(),caloMap_->volEBSD().end(),lv)!=caloMap_->volEBSD().end());
+  bool ee = (std::find(caloMap_->volEESD().begin(),caloMap_->volEESD().end(),lv)!=caloMap_->volEESD().end());
   if  (hc || eb || ee) {
     double dEStep = aStep.getEnergyDeposit();
     double time   = aStep.getTime();
@@ -283,13 +328,13 @@ void CaloSteppingActionT<Traits>::update(const StepWrapper& aStep) {
                      (eeNumberingScheme_->getUnitID(theBaseNumber)));
       if (unitID > 0 && dEStep > 0.0) {
         double dz = aStep.getDz();
-        auto ite   = xtalMap_.find(lv);
-        double crystalLength = ((ite == xtalMap_.end()) ? 230.0 : 
+        auto ite   = caloMap_->xtalMap().find(lv);
+        double crystalLength = ((ite == caloMap_->xtalMap().end()) ? 230.0 : 
                                 std::abs(ite->second));
-        double crystalDepth = ((ite == xtalMap_.end()) ? 0.0 :
+        double crystalDepth = ((ite == caloMap_->xtalMap().end()) ? 0.0 :
                                (std::abs(0.5*(ite->second)+dz)));
         double radl   = aStep.getRadlen();
-        bool   flag   = ((ite == xtalMap_.end()) ? true : (((ite->second) >= 0)
+        bool   flag   = ((ite == caloMap_->xtalMap().end()) ? true : (((ite->second) >= 0)
                                                            ? true : false));
         auto   depth  = getDepth(flag, crystalDepth, radl);
         dEStep        *= (getBirkL3(dEStep,aStep.getStepLength(), aStep.getCharge(), aStep.getDensity()) * 
