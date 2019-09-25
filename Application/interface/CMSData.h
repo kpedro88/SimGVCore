@@ -40,6 +40,7 @@ class CMSDataPerEvent : public GVScoring {
 		//for final output
 		bool Merge(const CMSDataPerEvent& other);
 		CaloSteppingAction* GetData() { return fSD.get(); }
+		void clear() { fSD->clear(); }
 
 	private:
 		//member variables
@@ -53,7 +54,7 @@ class CMSDataPerThread : public GVScoring {
 		~CMSDataPerThread() {}
 
 		//required interface
-		void Clear(int index) {}
+		void Clear(int index) { fDataPerEvent[index].clear(); }
 		bool Merge(int index, const CMSDataPerThread& other);
 
 		//common scoring interface
