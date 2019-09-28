@@ -20,6 +20,7 @@ parser.add_argument("-n", "--numer", dest="numer", type=str, default="", help="n
 parser.add_argument("-d", "--denom", dest="denom", type=str, default="", help="denom for ratio")
 parser.add_argument("-s", "--suffix", dest="suffix", type=str, default="", help="suffix for plots")
 parser.add_argument("-f","--formats", dest="formats", type=str, default=["png"], nargs='*', help="print plots in specified format(s)")
+parser.add_argument("-p","--perthread", dest="perthread", default=False, action="store_true", help="normalize by # of threads")
 args = parser.parse_args()
 
 testdir = "test"+args.test
@@ -58,6 +59,9 @@ for zval in zvals:
     if len(nonuniqs)>0:
         raise ValueError("Dataframe subset for z = "+str(zval)+" has varied parameters: "+",".join(nonuniqs))
     # calculate speedup if varying # threads
+    if args.perthread:
+        for stat in ["time","cpu"]:
+            zframes[zval][("stats",stat)] = pd.Series(zframes[zval]["stats"][stat]).divide(zframes[zval]["parameters"]["threads"])
     if args.x=="threads":
         zframes[zval][("stats","speedup")] = np.power(pd.Series(zframes[zval]["stats"]["time"])/zframes[zval].loc[zframes[zval]["parameters"].query("threads==1").index]["stats"]["time"][0],-1)
 

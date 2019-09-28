@@ -59,24 +59,4 @@ if [[ $CMSEXIT -ne 0 ]]; then
 	exit $CMSEXIT
 fi
 
-# now run igprof and generate report
-IGNAME=igprof_${SIMNAME}
-IGREP=igreport_${SIMNAME}.res
-
-igprof -d -t cmsRun -pp -z -o ${IGNAME}.pp.gz cmsRun runSim.py $ARGS >& ${IGNAME}.log
-IGEXIT=$?
-if [[ $IGEXIT -ne 0 ]]; then
-	echo "Failure in igprof ($SIMNAME)"
-	cleanup
-	exit $IGEXIT
-fi
-
-igprof-analyse -d -v ${IGNAME}.pp.gz >& ${IGREP}
-IGEXIT=$?
-if [[ $IGEXIT -ne 0 ]]; then
-	echo "Failure in igprof-analyse ($SIMNAME)"
-	cleanup
-	exit $IGEXIT
-fi
-
 cleanup

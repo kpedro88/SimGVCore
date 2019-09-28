@@ -7,7 +7,10 @@ def parseLogVal(line,item=""):
     else:
         linesplit = line.split(' ')
         if item in linesplit:
-            return float(linesplit[linesplit.index(item)+1])
+            try:
+                return float(linesplit[linesplit.index(item)+1])
+            except ValueError:
+                return 0.
         else:
             return 0.
 
@@ -32,12 +35,13 @@ def getContributions(report, log, geant, ptype):
     contributions = OrderedDict()
     contributions["other"] = 0.0
 
-    with open(report,'r') as infile:
-        for line in infile:
-            if line[0]=='[':
-                for key,cat in categories.iteritems():
-                    if cat in line and key not in contributions: # prevent overwriting
-                        contributions[key] = float(line.split()[2].replace("'",""))
+    if len(report)>0:
+        with open(report,'r') as infile:
+            for line in infile:
+                if line[0]=='[':
+                    for key,cat in categories.iteritems():
+                        if cat in line and key not in contributions: # prevent overwriting
+                            contributions[key] = float(line.split()[2].replace("'",""))
     # fill in missing
     for key in categories:
         if key not in contributions:
@@ -86,8 +90,8 @@ if __name__=="__main__":
     # check arguments
     parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
     parser.add_argument("-g","--geant", dest="geant", type=str, default="", choices=["G4","GV"], help="geant version", required=True)
-    parser.add_argument("-r", "--report", dest="report", type=str, default="", help="igprof report", required=True)
-    parser.add_argument("-l", "--log", dest="log", type=str, default="", help="CMSSW output log")
+    parser.add_argument("-r", "--report", dest="report", type=str, default="", help="igprof report")
+    parser.add_argument("-l", "--log", dest="log", type=str, default="", help="CMSSW output log", required=True)
     parser.add_argument("-p","--print", dest="ptype", type=str, default="text", choices=["","text","json"], help="how to print output")
     args = parser.parse_args()
 
