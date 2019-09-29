@@ -13,15 +13,47 @@ plt.style.use('default.mplstyle')
 parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
 parser.add_argument("-t", "--test", dest="test", type=str, help="test name", required=True)
 parser.add_argument("-x", dest="x", type=str, help="x variable", required=True)
+parser.add_argument("-y", dest="y", type=str, default=["cpu","mem","time"], help="y variable(s)", nargs='*')
 parser.add_argument("-z", dest="z", type=str, help="comparison variable", required=True)
 parser.add_argument("-c", "--cut", dest="cut", type=str, default="", help="cut on params")
 parser.add_argument("-i", "--ignore", dest="ignore", type=str, default=[], help="params to ignore", nargs='*')
-parser.add_argument("-n", "--numer", dest="numer", type=str, default="", help="numer for ratio")
-parser.add_argument("-d", "--denom", dest="denom", type=str, default="", help="denom for ratio")
+parser.add_argument("-n", "--numer", dest="numer", type=str, default=[], help="numer(s) for ratio", nargs='*')
+parser.add_argument("-d", "--denom", dest="denom", type=str, default=[], help="denom(s) for ratio", nargs='*')
 parser.add_argument("-s", "--suffix", dest="suffix", type=str, default="", help="suffix for plots")
 parser.add_argument("-f","--formats", dest="formats", type=str, default=["png"], nargs='*', help="print plots in specified format(s)")
 parser.add_argument("-p","--perthread", dest="perthread", default=False, action="store_true", help="normalize by # of threads")
 args = parser.parse_args()
+
+# plot categories
+plot_qtys = OrderedDict([
+    ("cpu",["total","other","geant","scoring","output"]),
+    ("mem",["vsize","rss"]),
+    ("vsize",["vsize"]),
+    ("rss",["rss"]),
+    ("time",["time"]),
+])
+ytitles = {
+    "cpu": "CPU [ticks]",
+    "mem": "memory [MB]",
+    "time": "wall clock time [s]",
+    "vsize": "virtual memory [MB]",
+    "rss": "RSS memory [MB]",
+}
+col_qtys = OrderedDict()
+
+# additions for derived speedup
+if args.x=="threads" and "time" in args.y:
+    plot_qtys["speedup"] = ["speedup"]
+    args.y.append("speedup")
+    ytitles["speedup"] = "speedup"
+    col_qtys["speedup"] = "stats"
+
+ratio_allowed = (len(args.numer)==1 and len(args.denom)==1) or \
+                (len(args.numer)==1 and len(args.denom)>1) or \
+                (len(args.numer)>1 and len(args.denom)==1) or \
+                (len(args.numer)>0 and len(args.numer)==len(args.denom))
+if not ratio_allowed and (len(args.numer)>0 or len(args.denom)>0):
+    parser.error("Inconsistent ratio arguments")
 
 testdir = "test"+args.test
 if not os.path.isdir(testdir):
@@ -35,6 +67,11 @@ with open(datafile,'r') as dfile:
 # this produces a data frame with three parts: 
 # parameters, contributions, stats
 dframe.columns = pd.MultiIndex.from_tuples([(x.split('_')[0],x.split('_')[1]) for x in dframe.columns])
+
+# get top level column for each qty
+for col in ["contributions","stats"]:
+    for key in dframe[col]:
+        col_qtys[key] = col
 
 # apply cut if any
 # not sure how to query entire multi index dataframe, so just query subsection and make a loc mask
@@ -66,73 +103,123 @@ for zval in zvals:
         zframes[zval][("stats","speedup")] = np.power(pd.Series(zframes[zval]["stats"]["time"])/zframes[zval].loc[zframes[zval]["parameters"].query("threads==1").index]["stats"]["time"][0],-1)
 
 # compute ratios
-zframes["ratio"] = None
-ratiotitle = ""
-if len(args.numer)>0 and len(args.denom)>0:
-    zframes["ratio"] = zframes[args.numer].copy()
-    ## adjust index so division will work
-    #zframes["ratio"].index = zframes[args.denom].index
+rframes = OrderedDict()
+ratio_title = ""
+ratio_key = 1
+def make_ratio(numer,denom,rframes,zframes):
+    rframes[(numer,denom)] = zframes[numer].copy()
     # don't divide params
     for col in ["contributions","stats"]:
-        zframes["ratio"][col] /= zframes[args.denom][col]
-    ratiotitle = args.numer+" / "+args.denom
+        rframes[(numer,denom)][col] /= zframes[denom][col]
+if len(args.numer)==1 and len(args.denom)==1:
+    make_ratio(args.numer[0],args.denom[0],rframes,zframes)
+    ratio_title = args.numer[0]+" / "+args.denom[0]
+elif len(args.numer)==1 and len(args.denom)>1:
+    for denom in args.denom:
+        make_ratio(args.numer[0],denom,rframes,zframes)
+    ratio_title = args.numer[0]+" / *"
+elif len(args.numer)>1 and len(args.denom)==1:
+    for numer in args.numer:
+        make_ratio(numer,args.denom[0],rframes,zframes)
+    ratio_title = "* / "+args.denom[0]
+    ratio_key = 0
+elif len(args.numer)>0 and len(args.numer)==len(args.denom):
+    for numer,denom in zip(args.numer,args.denom):
+        make_ratio(numer,denom,rframes,zframes)
+    ratio_title = "ratio"
 
-# plot categories
-plot_qtys = OrderedDict([
-    ("cpu",["total","other","geant","scoring","output"]),
-    ("mem",["vsize","rss"]),
-    ("time",["time"]),
-])
-ytitles = {
-    "cpu": "CPU [ticks]",
-    "mem": "memory [MB]",
-    "time": "wall clock time [s]",
-}
+# plotting helper functions
+def make_plot():
+    fig, (ax, lax) = plt.subplots(ncols=2, gridspec_kw={"width_ratios":[2.5,1]})
+    ax.set_prop_cycle(cycler('color',['k','b','m','r','c']))
+    return fig, ax, lax
+def make_legend(ax, lax, frame, ignore_list):
+    # add params to legend
+    handles, labels = ax.get_legend_handles_labels()
+    patches = [mpl.patches.Patch(color='w', label=p+": "+str(frame["parameters"][p][0])) for p in frame["parameters"] if p not in ignore_list]
+    handles.extend(patches)
+    labels.extend([patch.get_label() for patch in patches])
+    legend = lax.legend(handles=handles, labels=labels, borderaxespad=0, loc='upper right')
+    # remove unwanted components
+    lax.axis("off")
+    ax.get_legend().remove()
+def save_plot(fig, name, formats):
+    for format in args.formats:
+        fargs = {}
+        if format=="png": fargs = {"dpi":100}
+        elif format=="pdf": fargs = {"bbox_inches":"tight"}
+        fig.savefig(name+"."+format,**fargs)
 
-# get top level column for each qty
-col_qtys = OrderedDict()
-for col in ["contributions","stats"]:
-    for key in dframe[col]:
-        col_qtys[key] = col
+for plot in args.y:
+    qtys = plot_qtys[plot]
+    # everything separate
+    if len(qtys)>1:
+        vals = zframes.keys()
+        if len(rframes)>0: vals.extend(rframes.keys())
+        for val in vals:
+            if isinstance(val, tuple): 
+                frame = rframes[val]
+                isratio = True
+                this_ratio_title = val[0] + " / "+ val[1]
+            else:
+                frame = zframes[val]
+                isratio = False
 
-# additions for derived speedup
-if args.x=="threads":
-    plot_qtys["speedup"] = ["speedup"]
-    ytitles["speedup"] = "speedup"
-    col_qtys["speedup"] = "stats"
+            fig, ax, lax = make_plot()
 
-for plot in plot_qtys:
-    for zval,zframe in zframes.iteritems():
-        fig, (ax, lax) = plt.subplots(ncols=2, gridspec_kw={"width_ratios":[2.5,1]})
-        ax.set_prop_cycle(cycler('color',['k','b','m','r','c']))
-        
-        # make line plots
-        for qty in plot_qtys[plot]:
-            zframe.plot.line(x=("parameters",args.x), y=(col_qtys[qty],qty), label=qty, ax=ax)
-            
-        # axis info
-        ax.set_xlabel(args.x)
-        ax.set_ylabel(ratiotitle+" ("+ytitles[plot]+")" if zval=="ratio" else ytitles[plot])
-        fig.tight_layout()
-        
-        # add params to legend
-        handles, labels = ax.get_legend_handles_labels()
-        ignore_list2 = ignore_list[:]
-        if zval=="ratio": ignore_list2.append(args.z)
-        patches = [mpl.patches.Patch(color='w', label=p+": "+str(zframe["parameters"][p][0])) for p in zframe["parameters"] if p not in ignore_list2]
-        handles.extend(patches)
-        labels.extend([patch.get_label() for patch in patches])
-        legend = lax.legend(handles=handles, labels=labels, borderaxespad=0, loc='upper right')
-        # remove unwanted components
-        lax.axis("off")
-        ax.get_legend().remove()
-        
-        # print
-        pname = args.x+"_vs_"+plot+"__"+zval
-        if len(args.suffix)>0: pname = pname+"__"+args.suffix
-        fname = testdir+"/"+pname
-        for format in args.formats:
-            fargs = {}
-            if format=="png": fargs = {"dpi":100}
-            elif format=="pdf": fargs = {"bbox_inches":"tight"}
-            fig.savefig(fname+"."+format,**fargs)
+            # make line plots
+            for qty in qtys:
+                frame.plot.line(x=("parameters",args.x), y=(col_qtys[qty],qty), label=qty, ax=ax)
+
+            # axis info
+            ax.set_xlabel(args.x)
+            ax.set_ylabel(this_ratio_title+" ("+ytitles[plot]+")" if isratio else ytitles[plot])
+            fig.tight_layout()
+
+            ignore_list2 = ignore_list[:]
+            if isratio: ignore_list2.append(args.z)
+            make_legend(ax, lax, frame, ignore_list2)
+
+            # print
+            pname = args.x+"_vs_"+plot+"__"+("ratio" if isratio else val)
+            if len(args.suffix)>0: pname = pname+"__"+args.suffix
+            fname = testdir+"/"+pname
+            save_plot(fig, fname, args.formats)
+    # sims together and ratios together
+    else:
+        qty = qtys[0]
+        allframes = [zframes]
+        colors = OrderedDict()
+        if len(rframes)>0: allframes.append(rframes)
+        for frames in allframes:
+            fig, ax, lax = make_plot()
+
+            # make line plots
+            isratio = False
+            for val in frames:
+                if isinstance(val,tuple):
+                    label = val[0] + " / " + val[1]
+                    isratio = True
+                else:
+                    label = val
+                frames[val].plot.line(x=("parameters",args.x), y=(col_qtys[qty],qty), label=label, ax=ax)
+                line = ax.get_lines()[-1]
+                if isratio:
+                    line.set_color(colors[val[ratio_key]])
+                else:
+                    colors[val] = line.get_color()
+
+            # axis info
+            ax.set_xlabel(args.x)
+            ax.set_ylabel(ratio_title+" ("+ytitles[plot]+")" if isratio else ytitles[plot])
+            fig.tight_layout()
+
+            ignore_list2 = ignore_list[:]
+            ignore_list2.append(args.z)
+            make_legend(ax, lax, frames.items()[0][1], ignore_list2)
+
+            # print
+            pname = args.x+"_vs_"+plot+"__"+("ratio" if isratio else args.z)
+            if len(args.suffix)>0: pname = pname+"__"+args.suffix
+            fname = testdir+"/"+pname
+            save_plot(fig, fname, args.formats)
