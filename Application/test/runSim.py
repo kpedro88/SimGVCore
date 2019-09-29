@@ -167,7 +167,7 @@ if options.sim=="G4":
     process.MessageLogger.categories.append('Step')
 
 # modules for GeantV
-elif options.sim=="GV":
+elif options.sim=="GV" or options.sim=="GVst":
     # this converts the geometry into TGeoManager for GeantV
     process.TGeoMgrFromDdd =  cms.ESProducer("TGeoMgrFromDdd",
         verbose = cms.untracked.bool(False),
@@ -178,7 +178,7 @@ elif options.sim=="GV":
         HepMCProductLabel = cms.InputTag("generatorSmeared"),
         geometry = cms.string(""),
         ZFieldInTesla = cms.double(options.bfield),
-        singleTrackMode = cms.bool(False),
+        singleTrackMode = cms.bool(options.sim=="GVst"),
         Scoring = scoring_,
     )
 

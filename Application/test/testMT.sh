@@ -39,6 +39,14 @@ if [ -z "$ARGS" ]; then
 	exit 1
 fi
 
+NOCHECK=""
+if [ "$SIM" == GVst ]; then NOCHECK=true; fi
+./setupTest.sh $TESTNAME $NOCHECK
+SETUPEXIT=$?
+if [[ $SETUPEXIT -ne 0 ]]; then
+	exit $SETUPEXIT
+fi
+
 # check gen
 GENNAME=$(python getGenName.py $ARGS maxEvents=$NEVENTS)
 if ! [ -f ${GENNAME}.root ]; then
@@ -60,12 +68,6 @@ if ! [ -f ${TOTGENNAME}.root ]; then
 		echo "Failure in copy ($TOTGENNAME)"
 		exit $CMSEXIT
 	fi
-fi
-
-./setupTest.sh $TESTNAME
-SETUPEXIT=$?
-if [[ $SETUPEXIT -ne 0 ]]; then
-	exit $SETUPEXIT
 fi
 
 TESTDIR=test${TESTNAME}
@@ -96,4 +98,4 @@ for ((th=1;th<=$NCPU;th++)); do
 done
 
 # do the analysis once the loop is finished
-python analyzeTest.py -t $TESTNAME
+python analyzeTest.py -t $TESTNAME -i

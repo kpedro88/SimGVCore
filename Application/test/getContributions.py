@@ -19,6 +19,7 @@ def getContributions(report, log, geant, ptype):
         "G4": "G4EventManager::DoProcessing",
         "GV": "geant::cxx::WorkloadManager::TransportTracksTask",
     }
+    geants["GVst"] = geants["GV"]
     categories = OrderedDict([
         ("total","<spontaneous>"),
         ("geant",geants[geant]),
