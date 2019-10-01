@@ -194,8 +194,8 @@ void GeantVProducer::initialize() const {
     fConfig->fNmaxBuffSpill = 128;  // New configuration parameter!!!
     fConfig->fUseV3 = usev3;
 
-    fConfig->fUseRungeKutta = false;  // Enable use of RK integration in field for charged particles
-    // prop->fEpsilonRK = 0.001;      // Revised / reduced accuracy - vs. 0.0003 default
+    fConfig->fUseRungeKutta = true;  // Enable use of RK integration in field for charged particles
+    fConfig->fEpsilonRK = 0.0003;
 
     fConfig->fUseNuma = usenuma;
     fConfig->fNminThreshold = 5 * n_threads;
@@ -222,6 +222,16 @@ void GeantVProducer::initialize() const {
 
     // Activate vectorized geometry (for now does not work properly with MT)
     fConfig->fUseVectorizedGeom = false;
+
+    // Vectorized options
+    fConfig->fUseVectorizedPhysics = true;
+    fConfig->fUseVectorizedMSC     = true;
+    fConfig->fUseVectorizedField   = true;
+
+    // Taken from standalone FullCMS
+    fConfig->fNvecPHY = 64;
+    fConfig->fNvecMSC = 256;
+    fConfig->fNvecFLD = 512;
 
      // Create run manager
     edm::LogInfo("GeantVProducer") <<"*** RunManager: instantiating with "<< n_propagators <<" propagators and "<< n_threads <<" threads.";

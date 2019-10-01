@@ -28,15 +28,15 @@ if [ "$SIM" == "GV" ]; then
 		--field-vector                 x=0,y=0,z=38           "# constant field vector [kilogauss]"\
 		--field-use-RK                            1           "# use Runge-Kutta propagator"\
 		--field-eps-RK                       0.0003           "# RK tolerance error"\
-		--field-basketized                        0           "# basketized geometry"\
+		--field-basketized                        1           "# basketized geometry"\
 		--config-number-of-buffered-events      $th           "# number of events transported at once"\
 		--config-total-number-of-events         500           "# total number of events to be simulated"\
 		--config-number-of-threads              $th           "# number of working threads to be used"\
 		--config-number-of-propagators            1           "# number of propagators"\
 		--config-run-performance                  0           "# flag to activate performance mode i.e. no scoring"\
 		--config-vectorized-geom                  0           "# flag to activate vectorized geometry"\
-		--config-vectorized-physics               0           "# flag to activate vectorized physics"\
-		--config-vectorized-MSC                   0           "# flag to activate vectorized MSC"\
+		--config-vectorized-physics               1           "# flag to activate vectorized physics"\
+		--config-vectorized-MSC                   1           "# flag to activate vectorized MSC"\
 		--config-external-loop                    0           "# flag to run the application in external loop mode"\
 		--config-monitoring                       0           "# flag to activate some monitoring"\
 		--config-single-track                     0           "# flag to activate single track mode"\
