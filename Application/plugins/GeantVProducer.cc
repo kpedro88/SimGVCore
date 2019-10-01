@@ -45,10 +45,9 @@
 #include "SimGVCore/CaloGV/interface/CaloSteppingAction.h"
 #include "SimGVCore/Application/interface/CMSEvent.h"
 #include "SimGVCore/Application/interface/CMSData.h"
+#include "SimGVCore/Application/interface/CMSDetectorConstruction.h"
 #include "SimGVCore/Application/interface/CMSApplication.h"
 #include "SimGVCore/Application/interface/CMSPhysicsListX.h"
-//#include "Geant/example/CMSPhysicsList.h"
-#include "Geant/example/CMSDetectorConstruction.h"
 #include "Geant/UserFieldConstruction.h"
 #include "TGeoManager.h"
 
