@@ -179,6 +179,18 @@ elif options.sim=="GV" or options.sim=="GVst":
         geometry = cms.string(""),
         ZFieldInTesla = cms.double(options.bfield),
         singleTrackMode = cms.bool(options.sim=="GVst"),
+        NminReuse            = cms.int32(100000),
+        NminThreshold        = cms.int32(5),
+        NperBasket           = cms.int32(16),
+        UseVectorizedGeom    = cms.bool(False),
+        UseVectorizedPhysics = cms.bool(True),
+        NvecPHY              = cms.int32(64),
+        UseVectorizedMSC     = cms.bool(True),
+        NvecMSC              = cms.int32(256),
+        UseVectorizedField   = cms.bool(True),
+        NvecFLD              = cms.int32(512),
+        UseRungeKutta        = cms.bool(True),
+        EpsilonRK            = cms.double(0.0003),
         Scoring = scoring_,
     )
 

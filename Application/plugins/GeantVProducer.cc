@@ -103,12 +103,10 @@ class GeantVProducer : public edm::global::EDProducer<edm::ExternalWork,edm::Run
     std::unique_ptr<geant::EventSet> GenerateEventSet(const HepMC::GenEvent * evt, long long event_index, edm::WaitingTaskWithArenaHolder iHolder, EventCache* cache, TaskData *td) const;
 
 	edm::ParameterSet scoringParams;
-    // e.g. cms2015.root, cms2018.gdml, ExN03.root
-    std::string cms_geometry_filename;
     double zFieldInTesla;
-    bool singleTrackMode;
     edm::EDGetTokenT<edm::HepMCProduct> m_InToken;
     int n_threads;
+    std::unique_ptr<GeantConfig> fConfig;
     // cheating because run manager's functions modify its internal state
     // hope it handles locking internally
     mutable RunManager* fRunMgr;
@@ -116,13 +114,30 @@ class GeantVProducer : public edm::global::EDProducer<edm::ExternalWork,edm::Run
 
 GeantVProducer::GeantVProducer(edm::ParameterSet const& iConfig) :
 	scoringParams(iConfig.getParameter<edm::ParameterSet>("Scoring")),
-    cms_geometry_filename(iConfig.getParameter<std::string>("geometry")),
     zFieldInTesla(iConfig.getParameter<double>("ZFieldInTesla")),
-    singleTrackMode(iConfig.getParameter<bool>("singleTrackMode")),
     m_InToken(consumes<edm::HepMCProduct>(iConfig.getParameter<edm::InputTag>("HepMCProductLabel"))),
     n_threads(0),
+    fConfig(std::make_unique<GeantConfig>()),
 	fRunMgr(nullptr)
 {
+    //fill the config here
+    fConfig->fRunMode = GeantConfig::kExternalLoop;
+    fConfig->fUseV3 = true;
+    fConfig->fSingleTrackMode      = iConfig.getParameter<bool>("singleTrackMode");
+    fConfig->fNminReuse            = iConfig.getParameter<int>("NminReuse");
+    fConfig->fNminThreshold        = iConfig.getParameter<int>("NminThreshold");
+    fConfig->fNperBasket           = iConfig.getParameter<int>("NperBasket");
+    fConfig->fUseVectorizedGeom    = iConfig.getParameter<bool>("UseVectorizedGeom");
+    fConfig->fUseVectorizedPhysics = iConfig.getParameter<bool>("UseVectorizedPhysics");
+    fConfig->fNvecPHY              = iConfig.getParameter<int>("NvecPHY");
+    fConfig->fUseVectorizedMSC     = iConfig.getParameter<bool>("UseVectorizedMSC");
+    fConfig->fNvecMSC              = iConfig.getParameter<int>("NvecMSC");
+    fConfig->fUseVectorizedField   = iConfig.getParameter<bool>("UseVectorizedField");
+    fConfig->fNvecFLD              = iConfig.getParameter<int>("NvecFLD");
+    fConfig->fUseRungeKutta        = iConfig.getParameter<bool>("UseRungeKutta");
+    fConfig->fEpsilonRK            = iConfig.getParameter<double>("EpsilonRK");
+    fConfig->fGeomFileName         = iConfig.getParameter<std::string>("geometry");
+
 	//make a temporary instance of SD class to get the product list
 	//products will actually come from other instances of SD class downstream
 	CaloSteppingAction sd(scoringParams);
@@ -130,6 +145,7 @@ GeantVProducer::GeantVProducer(edm::ParameterSet const& iConfig) :
 }
 
 GeantVProducer::~GeantVProducer() {
+    fConfig.release();
     // this will delete fConfig also
     delete fRunMgr;
 }
@@ -143,7 +159,7 @@ void GeantVProducer::preallocate(edm::PreallocationConfiguration const& iPreallo
 }
 
 std::shared_ptr<int> GeantVProducer::globalBeginRun(const edm::Run& iRun, const edm::EventSetup& iSetup) const {
-    if(cms_geometry_filename.empty()){
+    if(fConfig->fGeomFileName.empty()){
         // obtain the geometry
         edm::ESTransientHandle<TGeoManager> geoh;
         iSetup.get<DisplayGeomRecord>().get(geoh);
@@ -174,79 +190,26 @@ void GeantVProducer::globalEndRun(edm::Run const&, edm::EventSetup const&) const
 }
 
 void GeantVProducer::initialize() const {
-    int n_propagators = 1;
-    int n_track_max = 500;
-    int n_reuse = 100000;
-    bool usev3 = true, usenuma = false;
-
-    // instantiate configuration helper
-    GeantConfig* fConfig = new GeantConfig();
-
-    fConfig->fRunMode = GeantConfig::kExternalLoop;
-    if(singleTrackMode) fConfig->fSingleTrackMode = true;
-
-    fConfig->fGeomFileName = cms_geometry_filename;
+    //fill in remaining config settings that need post-constructor info
     fConfig->fNtotal = 9999; //need to get nevents from somewhere
     fConfig->fNbuff = n_threads;
-
-    // V3 options
-    fConfig->fNstackLanes = 10;
-    fConfig->fNmaxBuffSpill = 128;  // New configuration parameter!!!
-    fConfig->fUseV3 = usev3;
-
-    fConfig->fUseRungeKutta = true;  // Enable use of RK integration in field for charged particles
-    fConfig->fEpsilonRK = 0.0003;
-
-    fConfig->fUseNuma = usenuma;
-    fConfig->fNminThreshold = 5 * n_threads;
-    fConfig->fNaverage = 50;
-
-    // Initial vector size, this is no longer an important model parameter,
-    // because it gets dynamically modified to accommodate the track flow
-    fConfig->fNperBasket = 16; // Initial vector size (tunable)
-
-    // This is now the most important parameter for memory considerations
-    fConfig->fMaxPerBasket = n_track_max;  // Maximum vector size (tunable)
-
-    // This is temporarily used as gun energy
-    fConfig->fEmax = 10;   // [GeV] used for now to select particle gun energy
-
-    // Activate I/O
-    fConfig->fFillTree = false;
-
-    // Set threshold for tracks to be reused in the same volume
-    fConfig->fNminReuse = n_reuse;
-
-    // Activate standard scoring   
-    fConfig->fUseStdScoring = false;
-
-    // Activate vectorized geometry (for now does not work properly with MT)
-    fConfig->fUseVectorizedGeom = false;
-
-    // Vectorized options
-    fConfig->fUseVectorizedPhysics = true;
-    fConfig->fUseVectorizedMSC     = true;
-    fConfig->fUseVectorizedField   = true;
-
-    // Taken from standalone FullCMS
-    fConfig->fNvecPHY = 64;
-    fConfig->fNvecMSC = 256;
-    fConfig->fNvecFLD = 512;
+    fConfig->fNminThreshold *= n_threads;
 
      // Create run manager
+    int n_propagators = 1;
     edm::LogInfo("GeantVProducer") <<"*** RunManager: instantiating with "<< n_propagators <<" propagators and "<< n_threads <<" threads.";
-    fRunMgr = new RunManager(n_propagators, n_threads, fConfig);
+    fRunMgr = new RunManager(n_propagators, n_threads, fConfig.get());
 
     // create the real physics main manager/interface object and set it in the RunManager
     edm::LogInfo("GeantVProducer") <<"*** RunManager: setting physics process...";
-    fRunMgr->SetPhysicsInterface(new geantphysics::PhysicsProcessHandler(*fConfig));
+    fRunMgr->SetPhysicsInterface(new geantphysics::PhysicsProcessHandler(*fRunMgr->GetConfig()));
 
     // Create user defined physics list for the full CMS application
-    geantphysics::PhysicsListManager::Instance().RegisterPhysicsList(new cmsapp::CMSPhysicsListX(*fConfig));
+    geantphysics::PhysicsListManager::Instance().RegisterPhysicsList(new cmsapp::CMSPhysicsListX(*fRunMgr->GetConfig()));
 
     // Detector construction
     auto detector_construction = new CMSDetectorConstruction(fRunMgr);
-    detector_construction->SetGDMLFile(cms_geometry_filename);
+    detector_construction->SetGDMLFile(fRunMgr->GetConfig()->fGeomFileName);
     fRunMgr->SetDetectorConstruction( detector_construction );
 
     // use a constant field
