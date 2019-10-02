@@ -183,7 +183,7 @@ elif options.sim=="GV" or options.sim=="GVst":
         NminThreshold        = cms.int32(5),
         NperBasket           = cms.int32(16),
         UseVectorizedGeom    = cms.bool(False),
-        UseVectorizedPhysics = cms.bool(True),
+        UseVectorizedPhysics = cms.bool(False),
         NvecPHY              = cms.int32(64),
         UseVectorizedMSC     = cms.bool(True),
         NvecMSC              = cms.int32(256),

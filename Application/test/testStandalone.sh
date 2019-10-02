@@ -35,7 +35,7 @@ if [ "$SIM" == "GV" ]; then
 		--config-number-of-propagators            1           "# number of propagators"\
 		--config-run-performance                  0           "# flag to activate performance mode i.e. no scoring"\
 		--config-vectorized-geom                  0           "# flag to activate vectorized geometry"\
-		--config-vectorized-physics               1           "# flag to activate vectorized physics"\
+		--config-vectorized-physics               0           "# flag to activate vectorized physics"\
 		--config-vectorized-MSC                   1           "# flag to activate vectorized MSC"\
 		--config-external-loop                    0           "# flag to run the application in external loop mode"\
 		--config-monitoring                       0           "# flag to activate some monitoring"\
