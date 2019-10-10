@@ -2,6 +2,9 @@
 <use name="SimG4CMS/Calo"/>
 <use name="SimG4Core/Notification"/>
 <use name="SimG4Core/Watcher"/>
+<use name="FWCore/ParameterSet"/>
+<use name="MagneticField/Engine"/>
+<use name="DataFormats/GeometryVector"/>
 <use name="geant4core"/>
 <export>
   <lib   name="1"/>
