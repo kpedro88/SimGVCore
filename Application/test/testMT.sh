@@ -4,6 +4,10 @@ TESTNAME=""
 SIM=""
 NEVENTS=0
 NCPU=$(cat /proc/cpuinfo | grep processor | wc -l)
+# check for hyperthreading
+if grep -q " ht " /proc/cpuinfo; then
+	NCPU=$((NCPU/2))
+fi
 ARGS="particle=electron mult=2 energy=50 year=2018 output=0"
 
 while getopts "t:a:s:n:" opt; do

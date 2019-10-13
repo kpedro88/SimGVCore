@@ -3,6 +3,10 @@
 SIM=$1
 TESTDIR=$CMSSW_BASE/work/local/geantv/install/bin/examples/FullCMS
 NCPU=$(cat /proc/cpuinfo | grep processor | wc -l)
+# check for hyperthreading
+if grep -q " ht " /proc/cpuinfo; then
+	NCPU=$((NCPU/2))
+fi
 th=1
 
 if [ -z "$SIM" ]; then
