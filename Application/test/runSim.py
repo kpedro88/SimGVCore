@@ -219,6 +219,8 @@ elif options.sim=="GV" or options.sim=="GVst":
     )
 
     if options.bfield < 0:
+        # set the full field
+        process.load('Configuration.StandardSequences.MagneticField_cff')
         getMagDB(process,options.year)
 
     if options.output: process.RAWSIMoutput.outputCommands.append("keep *_geantv_*_*")
