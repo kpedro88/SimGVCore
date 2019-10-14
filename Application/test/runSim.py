@@ -126,8 +126,8 @@ def getMagDB(process,year):
     process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
     from Configuration.AlCa.GlobalTag import GlobalTag
     gtname = ""
-    if year==2018: gtname = "phase1_2018_realistic"
-    elif year==2023: gtname = "phase2_realistic"
+    if year==2018: gtname = "auto:phase1_2018_realistic"
+    elif year==2023: gtname = "auto:phase2_realistic"
     if len(gtname)>0: process.GlobalTag = GlobalTag(process.GlobalTag, gtname, '')
 
 # modules for Geant4
