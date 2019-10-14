@@ -215,7 +215,11 @@ elif options.sim=="GV" or options.sim=="GVst":
         UseRungeKutta        = cms.bool(True),
         EpsilonRK            = cms.double(0.0003),
         Scoring = scoring_,
+        Grid = grid_,
     )
+
+    if options.bfield < 0:
+        getMagDB(process,options.year)
 
     if options.output: process.RAWSIMoutput.outputCommands.append("keep *_geantv_*_*")
 
