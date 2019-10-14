@@ -1,4 +1,5 @@
 <use name="SimGVCore/CaloGV"/>
+<use name="MagneticField/Engine"/>
 <use name="FWCore/MessageLogger"/>
 <use name="vecgeomv"/>
 <use name="geantv"/>
