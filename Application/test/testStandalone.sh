@@ -28,8 +28,7 @@ if [ "$SIM" == "GV" ]; then
 		--gun-set-primary-energy                 50           "# kinetic energy of the primary particle [in GeV]"\
 		--gun-set-primary-type                   e-           "# primary particle name/type"\
 		--gun-set-primary-per-event               2           "# number of primary particles per event"\
-		--field-type                              1           "# field type: 0-no field, 1-uniform field, 2- field map"\
-		--field-vector                 x=0,y=0,z=38           "# constant field vector [kilogauss]"\
+		--field-type                              2           "# field type: 0-no field, 1-uniform field, 2- field map"\
 		--field-use-RK                            1           "# use Runge-Kutta propagator"\
 		--field-eps-RK                       0.0003           "# RK tolerance error"\
 		--field-basketized                        1           "# basketized geometry"\
@@ -59,7 +58,7 @@ elif [ "$SIM" == "G4" ]; then
 /tracking/verbose 0
 /run/numberOfThreads $th
 /control/cout/prefixString G4-WORKER
-/mydet/setField 38 kilogauss
+/mydet/useFieldMap true
 /run/initialize
 /mygun/primaryPerEvt 2
 /mygun/particle e-
