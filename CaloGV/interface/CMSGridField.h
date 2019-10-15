@@ -8,7 +8,6 @@
 #include "MagneticField/Engine/interface/MagneticField.h"
 #include "DataFormats/GeometryVector/interface/GlobalPoint.h"
 
-#include "CLHEP/Units/GlobalSystemOfUnits.h"
 #include "base/Vector3D.h"
 #include "base/Global.h"
 #include "Geant/SystemOfUnits.h"
@@ -112,7 +111,7 @@ CMSGridField::CMSGridField(const MagneticField* field, const edm::ParameterSet& 
   ZnumHalf_(Znum_/2),
   RZnum_(Rnum_*Znum_),
   Vnum_(RZnum_*gNumFieldComponents),
-  Ainverse_(CLHEP::tesla/(Rstep_*Zstep_))
+  Ainverse_(tesla/(Rstep_*Zstep_))
 {
   fMagLinArray = new float[Vnum_];
   fMagLinArrayD = new double[Vnum_];  
@@ -125,9 +124,9 @@ CMSGridField::CMSGridField(const MagneticField* field, const edm::ParameterSet& 
       //evaluate magnetic field at each grid point from conditions
       GlobalPoint point(GlobalPoint::Cylindrical(R, phi, Z));
       const auto& fieldVal = field->inTesla(point);
-      fMagLinArray[ind + kIndR] = fieldVal.perp();
-      fMagLinArray[ind + kIndPhi] = fieldVal.phi();
-      fMagLinArray[ind + kIndZ] = fieldVal.z();
+      fMagLinArray[ind + kIndR] = fieldVal.perp()*Ainverse_;
+      fMagLinArray[ind + kIndPhi] = fieldVal.phi()*Ainverse_;
+      fMagLinArray[ind + kIndZ] = fieldVal.z()*Ainverse_;
       ind += gNumFieldComponents;
     }
   }
