@@ -120,8 +120,8 @@ CMSGridField::CMSGridField(const MagneticField* field, const edm::ParameterSet& 
   //construct grid from field
   const double phi = 0.;
   unsigned ind = 0;
-  for(auto R = Rmin_; R < Rmax_; R += Rstep_){
-    for(auto Z = Zmin_; Z < Zmax_; Z += Zstep_){
+  for(auto R = Rmin_; R <= Rmax_; R += Rstep_){
+    for(auto Z = Zmin_; Z <= Zmax_; Z += Zstep_){
       //evaluate magnetic field at each grid point from conditions
       GlobalPoint point(GlobalPoint::Cylindrical(R, phi, Z));
       const auto& fieldVal = field->inTesla(point);
