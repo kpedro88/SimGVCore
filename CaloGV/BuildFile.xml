@@ -1,3 +1,6 @@
+<use name="FWCore/ParameterSet"/>
+<use name="MagneticField/Engine"/>
+<use name="DataFormats/GeometryVector"/>
 <use name="SimGVCore/Calo"/>
 <use name="geantv"/>
 <use name="vecgeomv"/>

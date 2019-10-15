@@ -32,6 +32,8 @@
 #include "HepMC/GenParticle.h"
 #include "HepMC/GenVertex.h"
 #include "Fireworks/Geometry/interface/DisplayGeomRecord.h"
+#include "MagneticField/Engine/interface/MagneticField.h"
+#include "MagneticField/Records/interface/IdealMagneticFieldRecord.h"
 
 #include "Geant/Config.h"
 #include "Geant/RunManager.h"
@@ -46,6 +48,7 @@
 #include "SimGVCore/Application/interface/CMSEvent.h"
 #include "SimGVCore/Application/interface/CMSData.h"
 #include "SimGVCore/Application/interface/CMSDetectorConstruction.h"
+#include "SimGVCore/Application/interface/CMSFieldConstruction.h"
 #include "SimGVCore/Application/interface/CMSApplication.h"
 #include "SimGVCore/Application/interface/CMSPhysicsListX.h"
 #include "Geant/UserFieldConstruction.h"
@@ -94,7 +97,7 @@ class GeantVProducer : public edm::global::EDProducer<edm::ExternalWork,edm::Run
     void globalEndRun(edm::Run const&, edm::EventSetup const&) const override;
 
     /** Functions using new GeantV interface */
-    void initialize() const;
+    void initialize(const MagneticField* magfield=nullptr) const;
 
     /** @brief Generate an event set to be processed by a single task.
     Not required as application functionality, the event reading or generation
@@ -102,7 +105,7 @@ class GeantVProducer : public edm::global::EDProducer<edm::ExternalWork,edm::Run
     */
     std::unique_ptr<geant::EventSet> GenerateEventSet(const HepMC::GenEvent * evt, long long event_index, edm::WaitingTaskWithArenaHolder iHolder, EventCache* cache, TaskData *td) const;
 
-	edm::ParameterSet scoringParams;
+	edm::ParameterSet scoringParams, gridParams;
     double zFieldInTesla;
     edm::EDGetTokenT<edm::HepMCProduct> m_InToken;
     int n_threads;
@@ -114,6 +117,7 @@ class GeantVProducer : public edm::global::EDProducer<edm::ExternalWork,edm::Run
 
 GeantVProducer::GeantVProducer(edm::ParameterSet const& iConfig) :
 	scoringParams(iConfig.getParameter<edm::ParameterSet>("Scoring")),
+	gridParams(iConfig.getParameter<edm::ParameterSet>("Grid")),
     zFieldInTesla(iConfig.getParameter<double>("ZFieldInTesla")),
     m_InToken(consumes<edm::HepMCProduct>(iConfig.getParameter<edm::InputTag>("HepMCProductLabel"))),
     n_threads(0),
@@ -171,11 +175,18 @@ std::shared_ptr<int> GeantVProducer::globalBeginRun(const edm::Run& iRun, const 
         edm::LogInfo("GeantVProducer") << message.str();
     }
 
+    const MagneticField* magfield = nullptr;
+    if(zFieldInTesla < 0){
+        edm::ESHandle<MagneticField> pMF;
+        iSetup.get<IdealMagneticFieldRecord>().get(pMF);
+        magfield = pMF.product();
+    }
+
     // initialize manager
     // avoid CMSSW exception from kWarning issued by Geant::RunManager
     edm::Service<edm::RootHandlers> rootHandler;
     rootHandler->ignoreWarningsWhileDoing(
-        [this] { this->initialize(); },
+        [this,magfield] { this->initialize(magfield); },
         edm::RootHandlers::SeverityLevel::kError
     );
 
@@ -189,7 +200,7 @@ void GeantVProducer::globalEndRun(edm::Run const&, edm::EventSetup const&) const
 	cmsApp->FinishRun();
 }
 
-void GeantVProducer::initialize() const {
+void GeantVProducer::initialize(const MagneticField* magfield) const {
     //fill in remaining config settings that need post-constructor info
     fConfig->fNtotal = 9999; //need to get nevents from somewhere
     fConfig->fNbuff = n_threads;
@@ -212,11 +223,18 @@ void GeantVProducer::initialize() const {
     detector_construction->SetGDMLFile(fRunMgr->GetConfig()->fGeomFileName);
     fRunMgr->SetDetectorConstruction( detector_construction );
 
+    // field map option
+    if(magfield){
+        auto field_construction = new CMSFieldConstruction(magfield,gridParams);
+        fRunMgr->SetUserFieldConstruction(field_construction);
+    }
     // use a constant field
-    float fieldVec[3] = {0.0,0.0,float(zFieldInTesla)};
-    auto field_construction = new geant::UserFieldConstruction();
-    field_construction->UseConstantMagField(fieldVec,"tesla");
-    fRunMgr->SetUserFieldConstruction( field_construction );
+    else {
+        float fieldVec[3] = {0.0,0.0,float(zFieldInTesla)};
+        auto field_construction = new geant::UserFieldConstruction();
+        field_construction->UseConstantMagField(fieldVec,"tesla");
+        fRunMgr->SetUserFieldConstruction(field_construction);
+    }
 
     CMSApplication* cmsApp = new CMSApplication(fRunMgr, scoringParams);
     edm::LogInfo("GeantVProducer") <<"*** RunManager: setting up CMSApplication...";

@@ -5,6 +5,8 @@
 <use name="FWCore/MessageLogger"/>
 <use name="SimDataFormats/GeneratorProducts"/>
 <use name="Fireworks/Geometry"/>
+<use name="MagneticField/Engine"/>
+<use name="MagneticField/Records"/>
 <use name="SimGVCore/Application"/>
 <use name="SimGVCore/CaloGV"/>
 <use name="vecgeomv"/>

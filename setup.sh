@@ -55,6 +55,7 @@ for SIM in ${SIMS[@]}; do
 		eval `scramv1 runtime -sh`
 		git cms-merge-topic kpedro88:GVPhysicsList
 		git cms-merge-topic -u kpedro88:GVPassiveHit
+		git cms-merge-topic -u kpedro88:GVMagField
 		git cms-addpkg SimG4Core SimG4CMS
 		git clone git@github.com:kpedro88/SimGVCore.git -b SensDetTemplateWrapper
 		cd SimGVCore
@@ -65,6 +66,7 @@ cat << EOF_SPARSE > .git/info/sparse-checkout
 /Application/test
 /Application/python
 README.md
+setup.sh
 EOF_SPARSE
 		git read-tree -mu HEAD
 		cd ..

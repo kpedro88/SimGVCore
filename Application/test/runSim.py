@@ -9,9 +9,6 @@ process.load('Configuration.StandardSequences.Services_cff')
 process.load('SimGeneral.HepPDTESSource.pythiapdt_cfi')
 process.load('FWCore.MessageService.MessageLogger_cfi')
 process.load('Configuration.EventContent.EventContent_cff')
-#process.load('Configuration.StandardSequences.GeometryRecoDB_cff')
-process.load('Geometry.CMSCommonData.cmsExtendedGeometry2018NoSDXML_cfi')
-#process.load('Configuration.StandardSequences.MagneticField_cff')
 process.load('Configuration.StandardSequences.EndOfProcess_cff')
 
 process.maxEvents = cms.untracked.PSet(
@@ -115,14 +112,40 @@ scoring_ = cms.PSet(
     ),
 )
 
+# mag field grid params
+grid_ = cms.PSet(
+    Rmin = cms.double(0),
+    Rmax = cms.double(9000),
+    Rstep = cms.double(50),
+    Zmin = cms.double(-16000),
+    Zmax = cms.double(16000),
+    Zstep = cms.double(200),
+)
+
+def getMagDB(process,year):
+    process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
+    from Configuration.AlCa.GlobalTag import GlobalTag
+    gtname = ""
+    if year==2018: gtname = "auto:phase1_2018_realistic"
+    elif year==2023: gtname = "auto:phase2_realistic"
+    if len(gtname)>0: process.GlobalTag = GlobalTag(process.GlobalTag, gtname, '')
+
 # modules for Geant4
 if options.sim=="G4":
-    # set a constant magnetic field
-    process.load("MagneticField.Engine.uniformMagneticField_cfi")
-    process.UniformMagneticFieldESProducer.ZFieldInTesla = cms.double(options.bfield)
-
     # load g4SimHits module and psim sequence
     process.load("Configuration.StandardSequences.SimIdeal_cff")
+
+    if options.bfield < 0:
+        # set the full field
+        process.load('Configuration.StandardSequences.MagneticField_cff')
+        # set related sim options for grid
+        process.g4SimHits.MagneticField.UseGrid = True
+        process.g4SimHits.MagneticField.Grid = grid_
+        getMagDB(process,options.year)
+    else:
+        # set a constant magnetic field
+        process.load("MagneticField.Engine.uniformMagneticField_cfi")
+        process.UniformMagneticFieldESProducer.ZFieldInTesla = cms.double(options.bfield)
 
     # customize physics list to match GeantV
     process.g4SimHits.Physics.type = cms.string("SimG4Core/Physics/DummyPhysics")
@@ -192,7 +215,13 @@ elif options.sim=="GV" or options.sim=="GVst":
         UseRungeKutta        = cms.bool(True),
         EpsilonRK            = cms.double(0.0003),
         Scoring = scoring_,
+        Grid = grid_,
     )
+
+    if options.bfield < 0:
+        # set the full field
+        process.load('Configuration.StandardSequences.MagneticField_cff')
+        getMagDB(process,options.year)
 
     if options.output: process.RAWSIMoutput.outputCommands.append("keep *_geantv_*_*")
 
