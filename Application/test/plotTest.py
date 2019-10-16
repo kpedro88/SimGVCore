@@ -31,18 +31,21 @@ plot_qtys = OrderedDict([
     ("vsize",["vsize"]),
     ("rss",["rss"]),
     ("time",["time"]),
+    ("throughput",["throughput"]),
 ])
 ytitles = {
     "cpu": "CPU [ticks]",
     "mem": "memory [MB]",
     "time": "wall clock time [s]",
+    "throughput": "throughput [evt/s]",
     "vsize": "virtual memory [MB]",
     "rss": "RSS memory [MB]",
 }
 col_qtys = OrderedDict()
+col_qtys["throughput"] = "stats"
 
 # additions for derived speedup
-if args.x=="threads" and "time" in args.y:
+if args.x=="threads" and any(q in args.y for q in ["time","throughput"]):
     plot_qtys["speedup"] = ["speedup"]
     args.y.append("speedup")
     ytitles["speedup"] = "speedup"
@@ -97,6 +100,7 @@ for zval in zvals:
         raise ValueError("Dataframe subset for z = "+str(zval)+" has varied parameters: "+",".join(nonuniqs))
     # calculate speedup if varying # threads
     if args.perthread:
+        zframes[zval][("stats","throughput")] = pd.Series(zframes[zval]["parameters"]["maxEvents"]).divide(zframes[zval]["stats"]["time"])
         for stat in ["time","cpu"]:
             zframes[zval][("stats",stat)] = pd.Series(zframes[zval]["stats"][stat]).divide(zframes[zval]["parameters"]["threads"])
     if args.x=="threads":
