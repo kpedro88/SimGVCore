@@ -4,3 +4,5 @@ xtick.labelsize : 14
 ytick.labelsize : 14
 figure.autolayout : True
 figure.figsize : 10, 5
+legend.frameon : True
+font.size : 18
