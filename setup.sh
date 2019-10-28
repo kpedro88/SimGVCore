@@ -21,6 +21,15 @@ if [[ "$UNAME" == *el7* ]]; then
 	OS=slc7
 fi
 
+install_mplhep() {
+	cd $1
+	mkdir -p .local/lib/python2.7/site-packages
+	pip install --prefix `pwd`/.local mplhep
+	# fix missing import
+	cp -r /cvmfs/cms.cern.ch/$SCRAM_ARCH/external/py2-matplotlib/1.5.2-gnimlf2/lib/python2.7/site-packages/mpl_toolkits/ .local/lib/python2.7/site-packages/
+	touch .local/lib/python2.7/site-packages/mpl_toolkits/__init__.py
+}
+
 for SIM in ${SIMS[@]}; do
 	if [ "$SIM" = GV ]; then
 		cd $BASEDIR
@@ -45,6 +54,8 @@ for SIM in ${SIMS[@]}; do
 		scram b -j 8
 		# link to G4
 		ln -s ${G4DIR}/${TESTDIR} ${GVDIR}/${TESTDIR}/G4
+		# for plotting
+		install_mplhep ${GVDIR}/${TESTDIR}
 	elif [ "$SIM" = G4 ]; then
 		cd $BASEDIR
 		mkdir -p $G4DIR
@@ -74,6 +85,8 @@ EOF_SPARSE
 		scram b -j 8
 		# link to GV
 		ln -s ${GVDIR}/${TESTDIR} ${G4DIR}/${TESTDIR}/GV
+		# for plotting
+		install_mplhep ${G4DIR}/${TESTDIR}
 	else
 		echo "Unknown sim value: $SIM"
 	fi

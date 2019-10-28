@@ -1,4 +1,4 @@
-import os
+import os, sys
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from collections import OrderedDict
 import numpy as np
@@ -7,6 +7,14 @@ from cycler import cycler
 import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
+
+# mplhep for cms style
+sys.path.append(os.getcwd()+'/.local/lib/python2.7/site-packages/')
+import mplhep as hep
+# avoid incompatibilities
+for x in list(hep.cms.style.ROOT.keys()):
+    if x not in plt.rcParams.keys(): del hep.cms.style.ROOT[x]
+plt.style.use(hep.cms.style.ROOT)
 plt.style.use('default.mplstyle')
 
 # check arguments
@@ -133,14 +141,28 @@ elif len(args.numer)>0 and len(args.numer)==len(args.denom):
     ratio_title = "ratio"
 
 # plotting helper functions
+def prop_repr(prop, val):
+    prop_names = {
+        "bfield": "Field",
+        "energy": "Energy",
+        "mult": "N",
+        "particle": "Particle"
+    }
+    prop_vals = {
+        "bfield": "{:.1f} T",
+        "energy": "{:d} GeV",
+    }
+    line = (prop_names[prop] if prop in prop_names else prop)+": "+(prop_vals[prop].format(val) if prop in prop_vals else str(val))
+    return line
 def make_plot():
     fig, (ax, lax) = plt.subplots(ncols=2, gridspec_kw={"width_ratios":[2.5,1]})
     ax.set_prop_cycle(cycler('color',['k','b','m','r','c']))
+    ax = hep.cms.cmslabel(ax, data=False, paper=False, rlabel="")
     return fig, ax, lax
 def make_legend(ax, lax, frame, ignore_list):
     # add params to legend
     handles, labels = ax.get_legend_handles_labels()
-    patches = [mpl.patches.Patch(color='w', label=p+": "+str(frame["parameters"][p][0])) for p in frame["parameters"] if p not in ignore_list]
+    patches = [mpl.patches.Patch(color='w', label=prop_repr(p,frame["parameters"][p][0])) for p in frame["parameters"] if p not in ignore_list]
     handles.extend(patches)
     labels.extend([patch.get_label() for patch in patches])
     legend = lax.legend(handles=handles, labels=labels, borderaxespad=0, loc='upper right')
