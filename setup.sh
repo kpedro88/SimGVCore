@@ -24,10 +24,11 @@ fi
 install_mplhep() {
 	cd $1
 	mkdir -p .local/lib/python2.7/site-packages
-	pip install --prefix `pwd`/.local mplhep
-	# fix missing import
-	cp -r /cvmfs/cms.cern.ch/$SCRAM_ARCH/external/py2-matplotlib/1.5.2-gnimlf2/lib/python2.7/site-packages/mpl_toolkits/ .local/lib/python2.7/site-packages/
-	touch .local/lib/python2.7/site-packages/mpl_toolkits/__init__.py
+	# upgrade pip just in case
+	pip install -I --prefix=`pwd`/.local --upgrade pip
+	export PYTHON27PATH=`pwd`/.local/lib/python2.7/site-packages:$PYTHON27PATH
+	# use upgraded pip
+	.local/bin/pip install -I --prefix `pwd`/.local mplhep
 }
 
 for SIM in ${SIMS[@]}; do

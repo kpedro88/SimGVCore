@@ -1,4 +1,5 @@
 import os, sys
+sys.path.insert(0,os.getcwd()+'/.local/lib/python2.7/site-packages/')
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from collections import OrderedDict
 import numpy as np
@@ -9,7 +10,6 @@ mpl.use('Agg')
 import matplotlib.pyplot as plt
 
 # mplhep for cms style
-sys.path.append(os.getcwd()+'/.local/lib/python2.7/site-packages/')
 import mplhep as hep
 # avoid incompatibilities
 for x in list(hep.cms.style.ROOT.keys()):
@@ -30,6 +30,7 @@ parser.add_argument("-d", "--denom", dest="denom", type=str, default=[], help="d
 parser.add_argument("-s", "--suffix", dest="suffix", type=str, default="", help="suffix for plots")
 parser.add_argument("-f","--formats", dest="formats", type=str, default=["png"], nargs='*', help="print plots in specified format(s)")
 parser.add_argument("-p","--perthread", dest="perthread", default=False, action="store_true", help="normalize by # of threads")
+parser.add_argument("-v","--verbose", dest="verbose", default=False, action="store_true", help="dump plotted data")
 args = parser.parse_args()
 
 # plot categories
@@ -56,7 +57,7 @@ col_qtys["throughput"] = "stats"
 if args.x=="threads" and any(q in args.y for q in ["time","throughput"]):
     plot_qtys["speedup"] = ["speedup"]
     args.y.append("speedup")
-    ytitles["speedup"] = "speedup"
+    ytitles["speedup"] = "relative throughput"
     col_qtys["speedup"] = "stats"
 
 ratio_allowed = (len(args.numer)==1 and len(args.denom)==1) or \
@@ -156,8 +157,11 @@ def prop_repr(prop, val):
     return line
 def make_plot():
     fig, (ax, lax) = plt.subplots(ncols=2, gridspec_kw={"width_ratios":[2.5,1]})
-    ax.set_prop_cycle(cycler('color',['k','b','m','r','c']))
-    ax = hep.cms.cmslabel(ax, data=False, paper=False, rlabel="")
+    ax.set_prop_cycle(
+        color=['k','b','m','r','c'],
+        linestyle=['-', '--', ':', '-.','-.-'],
+    )
+    ax = hep.cms.cmslabel(ax, data=False, paper=True, rlabel="")
     return fig, ax, lax
 def make_legend(ax, lax, frame, ignore_list):
     # add params to legend
@@ -195,7 +199,8 @@ for plot in args.y:
 
             # make line plots
             for qty in qtys:
-                frame.plot.line(x=("parameters",args.x), y=(col_qtys[qty],qty), label=qty, ax=ax)
+                qax = frame.plot.line(x=("parameters",args.x), y=(col_qtys[qty],qty), label=qty, ax=ax)
+                if args.verbose: print(" ".join([qty,str(val),'\n',str(qax.lines[-1].get_xydata())]))
 
             # axis info
             ax.set_xlabel(args.x)
@@ -216,6 +221,7 @@ for plot in args.y:
         qty = qtys[0]
         allframes = [zframes]
         colors = OrderedDict()
+        styles = OrderedDict()
         if len(rframes)>0: allframes.append(rframes)
         for frames in allframes:
             fig, ax, lax = make_plot()
@@ -228,12 +234,15 @@ for plot in args.y:
                     isratio = True
                 else:
                     label = val
-                frames[val].plot.line(x=("parameters",args.x), y=(col_qtys[qty],qty), label=label, ax=ax)
+                qax = frames[val].plot.line(x=("parameters",args.x), y=(col_qtys[qty],qty), label=label, ax=ax)
+                if args.verbose: print(" ".join([qty,str(val),'\n',str(qax.lines[-1].get_xydata())]))
                 line = ax.get_lines()[-1]
                 if isratio:
                     line.set_color(colors[val[ratio_key]])
+                    line.set_linestyle(styles[val[ratio_key]])
                 else:
                     colors[val] = line.get_color()
+                    styles[val] = line.get_linestyle()
 
             # axis info
             ax.set_xlabel(args.x)
