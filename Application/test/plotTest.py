@@ -31,7 +31,13 @@ parser.add_argument("-s", "--suffix", dest="suffix", type=str, default="", help=
 parser.add_argument("-f","--formats", dest="formats", type=str, default=["png"], nargs='*', help="print plots in specified format(s)")
 parser.add_argument("-p","--perthread", dest="perthread", default=False, action="store_true", help="normalize by # of threads")
 parser.add_argument("-v","--verbose", dest="verbose", default=False, action="store_true", help="dump plotted data")
+parser.add_argument("-g","--geant", dest="geant", default=False, action="store_true", help="alternate style for geant paper")
 args = parser.parse_args()
+
+# adjust plot size
+if args.geant:
+    mpl.rcParams['figure.figsize'] = [8,5]
+    mpl.rcParams['legend.frameon'] = False
 
 # plot categories
 plot_qtys = OrderedDict([
@@ -155,13 +161,27 @@ def prop_repr(prop, val):
     }
     line = (prop_names[prop] if prop in prop_names else prop)+": "+(prop_vals[prop].format(val) if prop in prop_vals else str(val))
     return line
-def make_plot():
-    fig, (ax, lax) = plt.subplots(ncols=2, gridspec_kw={"width_ratios":[2.5,1]})
+def prop_repr_geant(frame, ignore_list):
+    prop_reps = OrderedDict([
+        ("particle","{}"),
+        ("mult","N = {:d}"),
+        ("energy","E = {:d} GeV"),
+        ("bfield","B = {:.1f} T"),
+    ])
+    return ", ".join([prop_reps[prop].format(frame["parameters"][prop][0]) for prop in prop_reps if prop in frame["parameters"] and prop not in ignore_list])
+def make_plot(geant, frame, ignore_list):
+    if geant:
+        fig, ax = plt.subplots()
+        lax = None
+        rlabel = prop_repr_geant(frame, ignore_list)
+    else:
+        fig, (ax, lax) = plt.subplots(ncols=2, gridspec_kw={"width_ratios":[2.5,1]})
+        rlabel = ""
     ax.set_prop_cycle(
         color=['k','b','m','r','c'],
         linestyle=['-', '--', ':', '-.','-.-'],
     )
-    ax = hep.cms.cmslabel(ax, data=False, paper=True, rlabel="")
+    ax = hep.cms.cmslabel(ax, data=False, paper=True, rlabel=rlabel)
     return fig, ax, lax
 def make_legend(ax, lax, frame, ignore_list):
     # add params to legend
@@ -176,7 +196,7 @@ def make_legend(ax, lax, frame, ignore_list):
 def save_plot(fig, name, formats):
     for format in args.formats:
         fargs = {}
-        if format=="png": fargs = {"dpi":100}
+        if format=="png": fargs = {"dpi":100, "bbox_inches":"tight"}
         elif format=="pdf": fargs = {"bbox_inches":"tight"}
         fig.savefig(name+"."+format,**fargs)
 
@@ -195,7 +215,9 @@ for plot in args.y:
                 frame = zframes[val]
                 isratio = False
 
-            fig, ax, lax = make_plot()
+            ignore_list2 = ignore_list[:]
+            if isratio: ignore_list2.append(args.z)
+            fig, ax, lax = make_plot(args.geant,frame,ignore_list2)
 
             # make line plots
             for qty in qtys:
@@ -207,9 +229,8 @@ for plot in args.y:
             ax.set_ylabel(this_ratio_title+" ("+ytitles[plot]+")" if isratio else ytitles[plot])
             fig.tight_layout()
 
-            ignore_list2 = ignore_list[:]
-            if isratio: ignore_list2.append(args.z)
-            make_legend(ax, lax, frame, ignore_list2)
+            if not args.geant: make_legend(ax, lax, frame, ignore_list2)
+            else: legend = ax.legend(loc="best")
 
             # print
             pname = args.x+"_vs_"+plot+"__"+("ratio" if isratio else val)
@@ -224,7 +245,9 @@ for plot in args.y:
         styles = OrderedDict()
         if len(rframes)>0: allframes.append(rframes)
         for frames in allframes:
-            fig, ax, lax = make_plot()
+            ignore_list2 = ignore_list[:]
+            ignore_list2.append(args.z)
+            fig, ax, lax = make_plot(args.geant,frames.items()[0][1],ignore_list2)
 
             # make line plots
             isratio = False
@@ -249,9 +272,8 @@ for plot in args.y:
             ax.set_ylabel(ratio_title+" ("+ytitles[plot]+")" if isratio else ytitles[plot])
             fig.tight_layout()
 
-            ignore_list2 = ignore_list[:]
-            ignore_list2.append(args.z)
-            make_legend(ax, lax, frames.items()[0][1], ignore_list2)
+            if not args.geant: make_legend(ax, lax, frames.items()[0][1], ignore_list2)
+            else: legend = ax.legend(loc="best")
 
             # print
             pname = args.x+"_vs_"+plot+"__"+("ratio" if isratio else args.z)
